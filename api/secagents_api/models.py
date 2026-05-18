@@ -1,16 +1,14 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy import (
     Boolean,
-    Column,
     DateTime,
     ForeignKey,
     Integer,
     Numeric,
     String,
-    Table,
     Text,
     func,
 )
