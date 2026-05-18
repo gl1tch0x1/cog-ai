@@ -33,7 +33,7 @@ services:
       redis: { condition: service_healthy }
 
   rust-core:
-    build: { context: ./rust-core, dockerfile: Dockerfile }
+    build: { context: ., dockerfile: rust-core/Dockerfile }
     environment:
       REDIS_URL: redis://redis:6379/1
     depends_on:
