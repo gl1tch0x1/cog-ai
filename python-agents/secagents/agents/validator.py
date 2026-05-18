@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-from typing import Optional
 
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
 from secagents.prompts import VALIDATOR_PROMPT
@@ -193,8 +192,6 @@ class ValidatorAgent(BaseAgent):
             Replay result
         """
         poc_url = finding.get("poc_url", "")
-        endpoint = finding.get("endpoint", "")
-        payload = finding.get("payload", "")
 
         self.logger.info(f"Replaying PoC: {poc_url}")
 
@@ -236,7 +233,6 @@ class ValidatorAgent(BaseAgent):
         Returns:
             Consistency result
         """
-        poc_url = finding.get("poc_url", "")
 
         try:
             results = []
@@ -407,3 +403,4 @@ class ValidatorAgent(BaseAgent):
             base -= (rejection_rate - 0.5) * 0.2
 
         return round(max(0.0, min(base, 1.0)), 2)
+

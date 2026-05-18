@@ -1,7 +1,6 @@
 """API security agent for API-specific vulnerability testing."""
 
 import asyncio
-import json
 import logging
 from typing import Optional
 

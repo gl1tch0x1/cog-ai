@@ -9,13 +9,10 @@ from dataclasses import dataclass, field
 import httpx
 
 from secagents.modules.cve_checks import (
-    CHECKS,
     CheckDefinition,
     CheckResult,
-    Severity,
     build_payloads,
     get_checks_for_url,
-    is_static_asset,
     verify_finding,
 )
 from secagents.modules.external_tools import ExternalTools

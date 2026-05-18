@@ -1,9 +1,7 @@
 """Recon agent for attack surface discovery."""
 
 import asyncio
-import json
 import logging
-from typing import Optional
 
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
 from secagents.prompts import RECON_PROMPT

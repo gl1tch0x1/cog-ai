@@ -1,8 +1,7 @@
 """
 Universal Analyzer Registry - Orchestrates 80+ specialized security tools.
 """
-import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from enum import Enum
 
 class AnalyzerCategory(str, Enum):

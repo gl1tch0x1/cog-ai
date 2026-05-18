@@ -58,7 +58,7 @@ class ExternalTools:
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-            lines = [l for l in stdout.decode().strip().split("\n") if l]
+            lines = [line for line in stdout.decode().strip().split("\n") if line]
             return ToolResult(tool=tool, success=proc.returncode == 0, output=lines, raw=stdout.decode())
         except asyncio.TimeoutError:
             proc.kill()

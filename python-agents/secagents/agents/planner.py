@@ -1,7 +1,6 @@
 """Planner agent for strategy generation and task planning."""
 
 import logging
-from typing import Optional
 
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
 from secagents.prompts import PLANNER_PROMPT
@@ -105,7 +104,7 @@ class PlannerAgent(BaseAgent):
         valid = all(scope.get(field) for field in required_fields)
         
         if not valid:
-            self.logger.warning(f"Scope validation failed: missing required fields")
+            self.logger.warning("Scope validation failed: missing required fields")
         
         return valid
 

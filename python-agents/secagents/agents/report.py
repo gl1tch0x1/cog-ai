@@ -3,7 +3,6 @@
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
 from secagents.prompts import REPORT_PROMPT
@@ -392,14 +391,14 @@ class ReportAgent(BaseAgent):
         for i, finding in enumerate(findings, 1):
             severity_class = finding.get("severity", "low").lower()
             html_lines.extend([
-                f"<div class='finding'>",
+                "<div class='finding'>",
                 f"<h3>Finding {i}: {finding.get('title', 'Untitled')}</h3>",
                 f"<p><strong>Type:</strong> {finding.get('type', 'Unknown')}</p>",
                 f"<p><strong class='{severity_class}'>Severity: {finding.get('severity', 'Unknown')}</strong></p>",
                 f"<p><strong>CWE:</strong> {finding.get('cwe', 'N/A')}</p>",
                 f"<p><strong>CVSS:</strong> {finding.get('cvss', 'N/A')}</p>",
                 f"<p>{finding.get('description', '')}</p>",
-                f"</div>",
+                "</div>",
             ])
 
         html_lines.extend([
