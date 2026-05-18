@@ -31,10 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
@@ -95,16 +95,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
 
       - name: Install python-agents (editable + dev extras)
         run: pip install -e "python-agents/.[dev,browser]"
+
+      - name: Create reports directory
+        run: mkdir -p reports
 
       - name: Apply database schema
         run: |
@@ -118,7 +121,7 @@ jobs:
           pytest tests/unit/test_agents.py \
             -v --tb=short \
             --junit-xml=reports/junit-agents.xml \
-            --cov=python-agents/secagents \
+            --cov=secagents \
             --cov-report=xml:reports/coverage-agents.xml \
             --cov-report=term-missing \
             --asyncio-mode=auto \
@@ -136,20 +139,22 @@ jobs:
           PYTHONPATH: python-agents
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: unit-test-results
           path: reports/
           retention-days: 30
+          if-no-files-found: warn
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: coverage-report
           path: reports/coverage-agents.xml
           retention-days: 30
+          if-no-files-found: warn
 
   # ─────────────────────────────────────────────────────────────────────
   #  JOB 3: API Integration Tests
@@ -184,16 +189,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
 
       - name: Install API (editable + dev extras)
         run: pip install -e "api/.[dev]"
+
+      - name: Create reports directory
+        run: mkdir -p reports
 
       - name: Apply database schema
         run: |
@@ -211,12 +219,13 @@ jobs:
           PYTHONPATH: api
 
       - name: Upload API test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: api-test-results
           path: reports/junit-api.xml
           retention-days: 30
+          if-no-files-found: warn
 
   # ─────────────────────────────────────────────────────────────────────
   #  JOB 4: Core Module Smoke Tests
@@ -228,10 +237,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
@@ -338,10 +347,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -369,7 +378,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -386,7 +395,7 @@ jobs:
           outputs: type=docker,dest=/tmp/secagents-api.tar
 
       - name: Upload image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: docker-image-api
           path: /tmp/secagents-api.tar
@@ -403,7 +412,7 @@ jobs:
 
     steps:
       - name: Download image artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: docker-image-api
           path: /tmp
