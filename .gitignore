@@ -1,0 +1,29 @@
+# Rust
+/target/
+rust-core/target/
+
+# Go
+go-services/*/bin/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+frontend/apex/.next/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

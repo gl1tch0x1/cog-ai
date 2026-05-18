@@ -1,0 +1,77 @@
+name: Bug Bounty Pipeline
+version: "1.0"
+description: Full autonomous bug bounty workflow
+
+steps:
+  - name: recon
+    type: parallel
+    tasks:
+      - name: subdomains
+        type: task
+        agent: recon
+        action: subdomain_enum
+        config:
+          target: "${target}"
+      - name: probe
+        type: task
+        agent: recon
+        action: http_probe
+        config:
+          target: "${target}"
+
+  - name: crawl
+    type: task
+    agent: recon
+    action: crawl
+    config:
+      targets: "${steps.recon.results}"
+      depth: 3
+
+  - name: param_discovery
+    type: task
+    agent: recon
+    action: param_discovery
+    config:
+      urls: "${steps.crawl.urls}"
+
+  - name: scan
+    type: parallel
+    tasks:
+      - name: web_scan
+        type: task
+        agent: web_security
+        action: scan
+        config:
+          endpoints: "${steps.param_discovery.endpoints}"
+          vuln_types: [xss, sqli, ssrf, lfi, rce, ssti]
+      - name: api_scan
+        type: task
+        agent: api_security
+        action: scan
+        config:
+          endpoints: "${steps.param_discovery.api_endpoints}"
+
+  - name: validate
+    type: task
+    agent: validator
+    action: validate
+    config:
+      findings: "${steps.scan.findings}"
+
+  - name: correlate
+    type: conditional
+    condition: "${steps.validate.finding_count}"
+    then:
+      agent: supervisor
+      action: correlate_chains
+      config:
+        findings: "${steps.validate.validated}"
+
+  - name: report
+    type: task
+    agent: report
+    action: generate
+    config:
+      findings: "${steps.validate.validated}"
+      chains: "${steps.correlate.chains}"
+      format: markdown

@@ -1,0 +1,209 @@
+name: CD — Deploy to Staging
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment target"
+        required: true
+        default: "staging"
+        type: choice
+        options: ["staging", "production"]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel an in-progress deploy
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  #  JOB 1: Build & Push API Image
+  # ─────────────────────────────────────────────────────────────────────
+  build-and-push:
+    name: "Build & Push Docker Images"
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      api-image: ${{ steps.meta-api.outputs.tags }}
+      api-digest: ${{ steps.build-api.outputs.digest }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata — API
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push API image
+        id: build-api
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  JOB 2: Deploy to Staging
+  # ─────────────────────────────────────────────────────────────────────
+  deploy-staging:
+    name: "Deploy — Staging"
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via Docker Compose (SSH)
+        uses: appleboy/ssh-action@v1
+        if: vars.STAGING_SSH_ENABLED == 'true'
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT || 22 }}
+          script: |
+            cd /opt/secagents
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose pull api
+            docker compose up -d api
+            docker compose exec -T postgres pg_isready -U secagents
+            echo "Deploy complete: $(date)"
+
+      - name: Smoke test staging health endpoint
+        if: vars.STAGING_URL != ''
+        run: |
+          sleep 10  # Wait for container to start
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.STAGING_URL }}/health" || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            echo "✓ Health check passed: ${{ vars.STAGING_URL }}/health → $STATUS"
+          else
+            echo "✗ Health check failed: HTTP $STATUS"
+            exit 1
+          fi
+
+      - name: Record deployment
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** Staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** ${{ needs.build-and-push.outputs.api-image }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Digest:** ${{ needs.build-and-push.outputs.api-digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed at:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  JOB 3: Post-Deploy Integration Tests
+  # ─────────────────────────────────────────────────────────────────────
+  post-deploy-tests:
+    name: "Post-Deploy Integration Tests"
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: vars.STAGING_URL != ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install test dependencies
+        run: pip install httpx pytest pytest-asyncio
+
+      - name: Run live API smoke tests
+        run: |
+          python -c "
+          import httpx, sys
+          base = '${{ vars.STAGING_URL }}'
+          
+          tests = [
+              ('GET', '/health', 200),
+              ('GET', '/targets', 200),
+              ('GET', '/workflows', 200),
+              ('GET', '/findings', 200),
+          ]
+          
+          passed = 0
+          for method, path, expected in tests:
+              try:
+                  r = httpx.request(method, base + path, timeout=10)
+                  status = '✓' if r.status_code == expected else '✗'
+                  print(f'{status} {method} {path} → {r.status_code} (expected {expected})')
+                  if r.status_code == expected:
+                      passed += 1
+              except Exception as e:
+                  print(f'✗ {method} {path} → ERROR: {e}')
+          
+          print(f'\nPassed: {passed}/{len(tests)}')
+          sys.exit(0 if passed == len(tests) else 1)
+          "
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  JOB 4: Notify on Failure
+  # ─────────────────────────────────────────────────────────────────────
+  notify-failure:
+    name: "Notify — Slack on Failure"
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-staging, post-deploy-tests]
+    if: failure()  # Slack action skips gracefully when SLACK_WEBHOOK_URL secret is absent
+
+    steps:
+      - name: Send Slack failure notification
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": ":red_circle: *SecAgents CD Failed*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":red_circle: *SecAgents deployment failed*\n*Branch:* `${{ github.ref_name }}`\n*Commit:* `${{ github.sha }}`\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View details>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
