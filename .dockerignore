@@ -1,0 +1,16 @@
+**/.git
+**/.github
+**/.pytest_cache
+**/.ruff_cache
+**/.next
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/target
+**/bin
+**/obj
+**/dist
+**/.venv
+**/.env
+**/.DS_Store
+**/Thumbs.db

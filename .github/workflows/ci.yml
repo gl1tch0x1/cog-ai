@@ -377,8 +377,8 @@ jobs:
       - name: Build API Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./api
-          file: ./api/Dockerfile
+          context: .
+          file: api/Dockerfile
           push: false
           tags: secagents/api:${{ github.sha }},secagents/api:latest
           cache-from: type=gha
