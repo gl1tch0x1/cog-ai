@@ -664,22 +664,29 @@ def print_summary(args: argparse.Namespace, success: bool) -> None:
     else:
         activate_cmd = "  source .venv/bin/activate"
 
+    step1 = c(CYAN, str(ENV_FILE))
+    step2 = c(CYAN, activate_cmd)
+    step3_a = c(CYAN, 'make dev-api')
+    step3_b = c(CYAN, 'uvicorn secagents_api.main:app --reload --port 8000')
+    step4 = c(CYAN, 'python -c "import asyncio; from secagents.modules.autopilot import Autopilot; asyncio.run(Autopilot(\'example.com\').run())"')
+    step5 = c(CYAN, 'docker compose up -d')
+
     print(f"""
   1. Edit your API keys:
-       {c(CYAN, str(ENV_FILE))}
+       {step1}
 
   2. Activate the virtual environment:
-       {c(CYAN, activate_cmd)}
+       {step2}
 
   3. Start the API server:
-       {c(CYAN, 'make dev-api')}
-       {c(CYAN, 'OR: uvicorn secagents_api.main:app --reload --port 8000')}
+       {step3_a}
+       OR: {step3_b}
 
   4. Run a quick scan:
-       {c(CYAN, 'python -c "import asyncio; from secagents.modules.autopilot import Autopilot; asyncio.run(Autopilot(\'example.com\').run())"')}
+       {step4}
 
   5. Full stack (Docker):
-       {c(CYAN, 'docker compose up -d')}
+       {step5}
     """)
     print(c(BOLD + CYAN, "═" * 62))
 

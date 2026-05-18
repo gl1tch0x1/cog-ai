@@ -185,10 +185,11 @@ jobs:
     name: "Notify — Slack on Failure"
     runs-on: ubuntu-latest
     needs: [build-and-push, deploy-staging, post-deploy-tests]
-    if: failure() && secrets.SLACK_WEBHOOK_URL != ''
+    if: failure()
 
     steps:
       - name: Send Slack failure notification
+        if: secrets.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1.27.0
         with:
           payload: |
