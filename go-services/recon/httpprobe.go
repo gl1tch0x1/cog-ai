@@ -52,6 +52,7 @@ func (p *HTTPProber) Probe(ctx context.Context, hosts []string) <-chan ProbeResu
 
 	go func() {
 		defer close(results)
+		defer wg.Wait()
 		for _, host := range hosts {
 			for _, port := range p.Ports {
 				select {
@@ -71,7 +72,12 @@ func (p *HTTPProber) Probe(ctx context.Context, hosts []string) <-chan ProbeResu
 					url := fmt.Sprintf("%s://%s:%d", scheme, h, pt)
 
 					start := time.Now()
-					resp, err := p.Client.Get(url)
+					req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+					if err != nil {
+						return
+					}
+					req.Header.Set("User-Agent", "SecAgent/1.0 (Authorized Security Scanner)")
+					resp, err := p.Client.Do(req)
 					if err != nil {
 						return
 					}
@@ -87,7 +93,6 @@ func (p *HTTPProber) Probe(ctx context.Context, hosts []string) <-chan ProbeResu
 				}(host, port)
 			}
 		}
-		wg.Wait()
 	}()
 
 	return results

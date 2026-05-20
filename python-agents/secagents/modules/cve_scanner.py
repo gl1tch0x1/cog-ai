@@ -25,6 +25,7 @@ class ScanConfig:
     threads: int = 10
     timeout: int = 10
     checks: list[str] | None = None  # None = all checks
+    verify_ssl: bool = True
 
 
 @dataclass

@@ -21,6 +21,9 @@ frontend/apex/.next/
 .env
 .env.local
 
+# Scan artifacts
+cog-ai-results/
+
 # IDE
 .vscode/
 .idea/

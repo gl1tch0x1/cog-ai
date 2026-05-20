@@ -26,7 +26,11 @@ type Crawler struct {
 	visited     sync.Map
 }
 
-func NewCrawler(maxDepth int, traceID string) *Crawler {
+func NewCrawler(maxDepth int, traceID ...string) *Crawler {
+	tid := ""
+	if len(traceID) > 0 {
+		tid = traceID[0]
+	}
 	return &Crawler{
 		Client: &http.Client{
 			Timeout: 15 * time.Second,
@@ -39,7 +43,7 @@ func NewCrawler(maxDepth int, traceID string) *Crawler {
 		},
 		MaxDepth:    maxDepth,
 		Concurrency: 10,
-		TraceID:     traceID,
+		TraceID:     tid,
 	}
 }
 
@@ -84,6 +88,7 @@ func (c *Crawler) crawlURL(ctx context.Context, url string, depth int, results c
 	if err != nil {
 		return
 	}
+	req.Header.Set("User-Agent", "SecAgent/1.0 (Authorized Security Scanner)")
 	resp, err := c.Client.Do(req)
 	if err != nil {
 		return

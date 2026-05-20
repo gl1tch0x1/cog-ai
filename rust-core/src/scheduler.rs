@@ -36,20 +36,24 @@ impl TaskScheduler {
     }
 
     /// Dequeues a task, waiting for an available concurrency slot.
-    pub async fn dequeue_blocking(&self) -> Task {
+    pub async fn dequeue_blocking(&self) -> Option<Task> {
         // Wait for a slot first
-        let _permit = self.semaphore.acquire().await.unwrap();
+        let _permit = match self.semaphore.acquire().await {
+            Ok(p) => p,
+            Err(_) => return None, // Semaphore closed
+        };
         // Forget the permit because we manage the active count manually for now
         // or we could store the permit in a wrapper. 
         // To keep it simple and match the current API:
         _permit.forget(); 
         
         loop {
-            let task = self.queue.lock().await.pop_front();
-            if let Some(t) = task {
+            let mut q = self.queue.lock().await;
+            if let Some(t) = q.pop_front() {
                 *self.active.lock().await += 1;
-                return t;
+                return Some(t);
             }
+            drop(q);
             // Wait for a task if queue was empty
             self.notify.notified().await;
         }
@@ -57,8 +61,8 @@ impl TaskScheduler {
 
     pub async fn dequeue(&self) -> Option<Task> {
         let _permit = self.semaphore.try_acquire().ok()?;
-        let task = self.queue.lock().await.pop_front();
-        if let Some(t) = task {
+        let mut q = self.queue.lock().await;
+        if let Some(t) = q.pop_front() {
             _permit.forget();
             *self.active.lock().await += 1;
             return Some(t);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 interface Finding {
   id: string;
@@ -12,16 +13,12 @@ interface Finding {
 }
 
 export default function FindingsPage() {
-  const [findings, setFindings] = useState<Finding[]>([]);
   const [filter, setFilter] = useState("");
-
-  useEffect(() => {
-    const params = filter ? `?severity=${filter}` : "";
-    fetch(`/api/findings${params}`)
-      .then((r) => r.json())
-      .then(setFindings)
-      .catch(() => {});
-  }, [filter]);
+  const params = filter ? `?severity=${filter}` : "";
+  const { data: findings = [], isLoading, isError, error } = useApiQuery<Finding[]>(
+    ["findings", filter],
+    `/findings${params}`
+  );
 
   const severityColor: Record<string, string> = {
     critical: "bg-red-600 text-white",
@@ -47,6 +44,8 @@ export default function FindingsPage() {
           <option value="low">Low</option>
         </select>
       </div>
+      {isLoading && <p className="text-slate-500">Loading...</p>}
+      {isError && <p className="text-red-500">Failed to load findings: {error?.message}</p>}
       <div className="space-y-3">
         {findings.map((f) => (
           <div key={f.id} className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
@@ -58,13 +57,13 @@ export default function FindingsPage() {
             </div>
             <div className="flex items-center gap-3">
               {f.validated && <span className="text-green-600 text-sm font-medium">✓ Validated</span>}
-              <span className={`px-2 py-1 rounded text-xs font-bold ${severityColor[f.severity]}`}>
-                {f.severity.toUpperCase()}
+              <span className={`px-2 py-1 rounded text-xs font-bold ${severityColor[f.severity] || "bg-slate-400 text-white"}`}>
+                {(f.severity ?? "unknown").toUpperCase()}
               </span>
             </div>
           </div>
         ))}
-        {findings.length === 0 && (
+        {!isLoading && findings.length === 0 && (
           <p className="text-center text-slate-400 py-8">No findings yet</p>
         )}
       </div>

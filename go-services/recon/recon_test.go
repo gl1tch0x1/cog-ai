@@ -2,6 +2,9 @@ package recon
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -36,6 +39,38 @@ func TestHTTPProberInit(t *testing.T) {
 	p := NewHTTPProber()
 	if len(p.Ports) != 4 {
 		t.Fatal("expected 4 default ports")
+	}
+}
+
+func TestCrawler(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		io.WriteString(w, `<html><body><a href="/page1">Page 1</a><a href="https://other.com">Other</a></body></html>`)
+	})
+	mux.HandleFunc("/page1", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		io.WriteString(w, `<html><body><a href="/page2">Page 2</a></body></html>`)
+	})
+	mux.HandleFunc("/page2", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		io.WriteString(w, `<html><body>Done</body></html>`)
+	})
+
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	c := NewCrawler(2, "test-trace")
+	results := c.Crawl(context.Background(), ts.URL)
+
+	count := 0
+	for range results {
+		count++
+	}
+
+	// Should find /, /page1, and /page2
+	if count != 3 {
+		t.Errorf("expected 3 results, got %d", count)
 	}
 }
 

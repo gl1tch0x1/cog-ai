@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 interface Report {
   id: string;
@@ -11,18 +11,12 @@ interface Report {
 }
 
 export default function ReportsPage() {
-  const [reports, setReports] = useState<Report[]>([]);
-
-  useEffect(() => {
-    fetch("/api/reports")
-      .then((r) => r.json())
-      .then(setReports)
-      .catch(() => {});
-  }, []);
+  const { data: reports = [], isLoading } = useApiQuery<Report[]>(["reports"], "/reports");
 
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Reports</h1>
+      {isLoading && <p className="text-slate-500">Loading...</p>}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-slate-50 border-b">
@@ -31,7 +25,6 @@ export default function ReportsPage() {
               <th className="px-4 py-3 text-sm font-medium text-slate-600">Format</th>
               <th className="px-4 py-3 text-sm font-medium text-slate-600">Findings</th>
               <th className="px-4 py-3 text-sm font-medium text-slate-600">Created</th>
-              <th className="px-4 py-3 text-sm font-medium text-slate-600">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -43,15 +36,10 @@ export default function ReportsPage() {
                 <td className="px-4 py-3 text-sm text-slate-500">
                   {new Date(r.created_at).toLocaleString()}
                 </td>
-                <td className="px-4 py-3">
-                  <a href={`/api/reports/${r.id}/download`} className="text-apex-600 hover:underline text-sm">
-                    Download
-                  </a>
-                </td>
               </tr>
             ))}
-            {reports.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">No reports yet</td></tr>
+            {!isLoading && reports.length === 0 && (
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-400">No reports yet</td></tr>
             )}
           </tbody>
         </table>

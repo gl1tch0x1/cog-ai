@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 interface Workflow {
   id: string;
@@ -11,14 +11,10 @@ interface Workflow {
 }
 
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-
-  useEffect(() => {
-    fetch("/api/workflows")
-      .then((r) => r.json())
-      .then(setWorkflows)
-      .catch(() => {});
-  }, []);
+  const { data: workflows = [], isLoading, isError, error } = useApiQuery<Workflow[]>(
+    ["workflows"],
+    "/workflows"
+  );
 
   const statusColor: Record<string, string> = {
     running: "bg-green-100 text-green-800",
@@ -31,10 +27,9 @@ export default function WorkflowsPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Workflows</h1>
-        <button className="bg-apex-600 text-white px-4 py-2 rounded hover:bg-apex-700">
-          New Workflow
-        </button>
       </div>
+      {isLoading && <p className="text-slate-500">Loading...</p>}
+      {isError && <p className="text-red-500">Failed to load workflows: {error?.message}</p>}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-slate-50 border-b">
@@ -58,11 +53,11 @@ export default function WorkflowsPage() {
                 </td>
                 <td className="px-4 py-3">{w.current_phase || "—"}</td>
                 <td className="px-4 py-3 text-sm text-slate-500">
-                  {new Date(w.started_at).toLocaleString()}
+                  {w.started_at ? new Date(w.started_at).toLocaleString() : "—"}
                 </td>
               </tr>
             ))}
-            {workflows.length === 0 && (
+            {!isLoading && workflows.length === 0 && (
               <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">No workflows yet</td></tr>
             )}
           </tbody>

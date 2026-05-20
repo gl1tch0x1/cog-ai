@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+
+const DEFAULT_MAX_HISTORY: usize = 10_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
@@ -28,7 +30,8 @@ pub enum EventType {
 
 pub struct EventBus {
     sender: broadcast::Sender<Event>,
-    history: Arc<RwLock<Vec<Event>>>,
+    history: Arc<RwLock<VecDeque<Event>>>,
+    max_history: usize,
 }
 
 impl EventBus {
@@ -36,12 +39,18 @@ impl EventBus {
         let (sender, _) = broadcast::channel(capacity);
         Self {
             sender,
-            history: Arc::new(RwLock::new(Vec::new())),
+            history: Arc::new(RwLock::new(VecDeque::with_capacity(DEFAULT_MAX_HISTORY))),
+            max_history: DEFAULT_MAX_HISTORY,
         }
     }
 
     pub async fn publish(&self, event: Event) {
-        self.history.write().await.push(event.clone());
+        let mut history = self.history.write().await;
+        if history.len() >= self.max_history {
+            history.pop_front();
+        }
+        history.push_back(event.clone());
+        drop(history);
         let _ = self.sender.send(event);
     }
 
@@ -50,7 +59,7 @@ impl EventBus {
     }
 
     pub async fn history(&self) -> Vec<Event> {
-        self.history.read().await.clone()
+        self.history.read().await.iter().cloned().collect()
     }
 
     pub async fn history_for_workflow(&self, workflow_id: Uuid) -> Vec<Event> {
@@ -61,6 +70,10 @@ impl EventBus {
             .filter(|e| e.workflow_id == workflow_id)
             .cloned()
             .collect()
+    }
+
+    pub async fn len(&self) -> usize {
+        self.history.read().await.len()
     }
 }
 
@@ -98,5 +111,18 @@ mod tests {
         let received = rx.recv().await.unwrap();
         assert_eq!(received.event_type, EventType::WorkflowStarted);
         assert_eq!(bus.history().await.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn ring_buffer_trims() {
+        let mut bus = EventBus::new(16);
+        bus.max_history = 3;
+
+        let wf_id = Uuid::new_v4();
+        for _ in 0..5 {
+            bus.publish(Event::new(EventType::TaskStarted, wf_id, serde_json::json!({}))).await;
+        }
+
+        assert_eq!(bus.len().await, 3);
     }
 }

@@ -19,7 +19,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Rust Core](https://img.shields.io/badge/core-rust-orange.svg)](https://www.rust-lang.org/)
 [![Go Recon](https://img.shields.io/badge/recon-go-cyan.svg)](https://go.dev/)
-[![Tests](https://img.shields.io/badge/tests-60%2F60%20passing-brightgreen.svg)](https://github.com/gl1tch0x1/cog-ai)
+[![Tests](https://img.shields.io/badge/tests-78%2B%20passing-brightgreen.svg)](https://github.com/gl1tch0x1/cog-ai)
 [![Status](https://img.shields.io/badge/status-active-success.svg)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
@@ -460,7 +460,7 @@ nano .env  # Add at least one LLM API key (see Configuration section)
 python3 installer.py --docker
 
 # 4. Run your first scan
-python3 -m secagents.cli scan --target example.com --depth quick
+python3 -m secagents scan --target example.com --depth quick
 ```
 
 That's it. The installer handles everything else: PostgreSQL setup, Redis, venv creation, dependency installation, and schema migration.
@@ -654,6 +654,60 @@ SecAgent automatically routes requests to the best available provider based on t
 | Deep exploit reasoning | Anthropic | → OpenAI → DeepSeek |
 | Offline / local | Ollama | *(no fallback)* |
 
+**Universal key format:** Set `LLM_API_KEYS=sk-...,sk-ant-...` (comma-separated). SecAgent auto-detects the provider from each key prefix — no `--llm-provider` flag required.
+
+---
+
+## 🏗️ Production Platform Modules (v0.2)
+
+SecAgent implements a strict multi-agent pipeline for authorized testing only:
+
+| Codename | Module | Purpose |
+|----------|--------|---------|
+| **Pre-Flight** | `secagents/operational/` | OS security update check, GitHub self-update with config backup |
+| **The Vault** | `secagents/vault/` | `.env` loading, color-coded key validation (🟢🟡🔴), masked logging |
+| **Omni-LLM** | `secagents/llm/` | Provider-agnostic client + 2-of-N consensus for findings |
+| **whichllm** | `secagents/whichllm/` | GPU/RAM detection, optimal Ollama model selection |
+| **Hermes** | `secagents/hermes/` | SQLite memory, skill generation, post-scan retrospective |
+| **The Arsenal** | `secagents/arsenal/` | SQLi, XSS, SSRF, IDOR, SSTI, XXE, CMDi, path traversal probes |
+| **The Armada** | `secagents/armada/` | DAG planner, specialist agents, `--workers N` scaling |
+| **The Crucible** | `secagents/crucible/` | PoC validation, exploit chaining, regression test registry |
+| **Remediation** | `secagents/remediation/` | Auto-patch snippets, JSON/MD/HTML reports, Jira/Slack tickets |
+| **The Fortress** | `secagents/fortress/` + `sandbox/Dockerfile` | Ephemeral Docker isolation, `./cog-ai-results/` persistence |
+| **Intel** | `secagents/intel/` | Shodan + ProjectDiscovery Chaos enrichment |
+| **Keyhacks** | `secagents/agents/keyhacks.py` | Leaked API key discovery + rate-limited validation |
+
+### CLI Reference
+
+```bash
+# Full autonomous pipeline (recommended)
+python3 -m secagents scan --target example.com --depth standard --workers 8
+
+# Flags
+#   --skip-os-check      Skip apt/dnf security update gate
+#   --no-arsenal         Skip secondary heuristic probes (CVE engine only)
+#   --insecure           Disable TLS verification (not recommended)
+#   --no-sandbox         Disable Docker Fortress (not recommended)
+#   --setup-local-llm    Run whichllm + Ollama model pull
+#   --results-dir PATH   Output directory (default: ./cog-ai-results/)
+
+python3 -m secagents vault --validate          # Color-coded API key status
+python3 -m secagents preflight --skip-os-check
+python3 -m secagents update --check-only
+python3 -m secagents hardware --install       # whichllm + Ollama
+python3 -m secagents keyhacks ./src/          # Leaked key scan (rate-limited)
+python3 -m secagents worker                   # Redis worker for API workflows
+python3 -m secagents update                   # Explicit self-update (not run during scan)
+```
+
+**Scope:** Every scan requires `ALLOWED_DOMAINS` in `.env`. Targets outside the list are rejected before any probing runs.
+
+Build the Fortress sandbox image:
+
+```bash
+docker build -t secagents/sandbox:latest -f sandbox/Dockerfile sandbox/
+```
+
 ---
 
 ## 🎯 Running Your First Scan
@@ -672,13 +726,13 @@ python3 installer.py --check
 source .venv/bin/activate
 
 # Quick scan (recon + surface-level checks, ~5 min)
-python3 -m secagents.cli scan --target example.com --depth quick
+python3 -m secagents scan --target example.com --depth quick
 
 # Standard scan (full recon + vuln analysis, ~20 min)
-python3 -m secagents.cli scan --target example.com --depth standard
+python3 -m secagents scan --target example.com --depth standard
 
 # Deep scan (full autonomous chain including exploit correlation, ~60 min)
-python3 -m secagents.cli scan --target example.com --depth deep
+python3 -m secagents scan --target example.com --depth deep
 ```
 
 **Method 2 — REST API**
@@ -785,7 +839,19 @@ cog-ai/
 │
 ├── python-agents/              # Core AI agent system
 │   └── secagents/
-│       ├── cli.py              # Command-line interface
+│       ├── cli.py              # Command-line interface (python -m secagents)
+│       ├── operational/        # OS/update checks
+│       ├── vault/              # .env + key validation
+│       ├── llm/                # Omni-LLM + consensus
+│       ├── whichllm/           # Hardware-aware local LLM
+│       ├── hermes/             # Learning loop memory
+│       ├── arsenal/            # Built-in exploit probes
+│       ├── armada/             # Agent swarm orchestration
+│       ├── crucible/           # PoC validation + regression
+│       ├── remediation/        # Auto-patch + reporting
+│       ├── fortress/           # Docker sandbox wrapper
+│       ├── intel/              # Shodan + Chaos
+│       ├── pipeline/           # End-to-end scan runner
 │       ├── modules/
 │       │   ├── autopilot.py    # Autonomous scan orchestrator
 │       │   ├── planner.py      # Mission decomposer (DAG builder)
@@ -811,7 +877,9 @@ cog-ai/
 ├── docs/                       # Extended documentation
 ├── templates/                  # Report templates
 │
-├── .env.example                # Environment template
+├── .env.example                # Environment template (all supported keys)
+├── sandbox/Dockerfile          # Fortress isolation image
+├── cog-ai-results/             # Scan output (gitignored)
 ├── docker-compose.yml          # Full stack Docker Compose
 ├── installer.py                # Automated setup script
 ├── Makefile                    # Common dev commands

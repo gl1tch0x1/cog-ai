@@ -67,7 +67,9 @@ async def client():
 async def test_health(client):
     resp = await client.get("/health")
     assert resp.status_code == 200
-    assert resp.json()["status"] == "ok"
+    data = resp.json()
+    assert data["status"] in ("ok", "operational")
+    assert "version" in data
 
 
 @pytest.mark.asyncio

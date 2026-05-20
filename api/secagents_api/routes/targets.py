@@ -1,4 +1,4 @@
-"""Target management endpoints."""
+"""Target management endpoints with authorization filtering."""
 
 from typing import List
 from uuid import UUID
@@ -19,7 +19,7 @@ router = APIRouter()
 async def create_target(
     body: TargetCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     target = Target(
         project_id=body.project_id,
@@ -27,7 +27,7 @@ async def create_target(
         scope=body.scope or [body.domain],
         excluded=body.excluded,
         tags=body.tags,
-        created_by=current_user.id
+        created_by=current_user.id,
     )
     db.add(target)
     await db.commit()
@@ -38,9 +38,11 @@ async def create_target(
 @router.get("", response_model=List[TargetResponse])
 async def list_targets(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Target))
+    result = await db.execute(
+        select(Target).where(Target.created_by == current_user.id)
+    )
     return result.scalars().all()
 
 
@@ -48,9 +50,11 @@ async def list_targets(
 async def get_target(
     target_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Target).where(Target.id == target_id))
+    result = await db.execute(
+        select(Target).where(Target.id == target_id, Target.created_by == current_user.id)
+    )
     target = result.scalar_one_or_none()
     if not target:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Target not found")
