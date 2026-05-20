@@ -1015,10 +1015,13 @@ For issues not covered here, open a [GitHub Issue](https://github.com/gl1tch0x1/
 If you use SecAgent in your research or security engagements, please cite the tool as follows:
 
 ```bibtex
-@software{secagent2024,
+@software{secagent2025,
   author = {gl1tch0x1},
-  title = {SecAgent: Autonomous Offensive AI Framework for Red Teams & Security Researchers},
-  year = {2024},
+  title = {SeAgent: Autonomous Offensive AI Framework for Red Teams & Security Researchers},
+  year = {2025},
+  publisher = {GitHub},
+  journal = {GitHub},
+  howpublished = {\url{https://github.com/gl1tch0x1/cog-ai}},
   url = {https://github.com/gl1tch0x1/cog-ai}
 }
 ```
