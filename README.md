@@ -1010,6 +1010,28 @@ For issues not covered here, open a [GitHub Issue](https://github.com/gl1tch0x1/
 
 ---
 
+## 📝 Citation
+
+If you use SecAgent in your research or security engagements, please cite the tool as follows:
+
+```bibtex
+@software{secagent2024,
+  author = {gl1tch0x1},
+  title = {SecAgent: Autonomous Offensive AI Framework for Red Teams & Security Researchers},
+  year = {2024},
+  url = {https://github.com/gl1tch0x1/cog-ai}
+}
+```
+
+## 🙏 Acknowledgments
+
+This project has been made possible through the support and inspiration of the offensive security research community. Special thanks to:
+- The developers of **sec**, **bbh-ai**, and **apex** for the foundational modules.
+- All contributors who have submitted bug reports, feature requests, and pull requests.
+- Security researchers who provide the vulnerability research that fuels our specialist agents.
+
+---
+
 ## 📜 License
 
 MIT License — see [LICENSE](LICENSE) for details.
