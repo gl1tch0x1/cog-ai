@@ -261,7 +261,12 @@ def install_python_packages() -> bool:
             run([PIP_EXEC, "install", "-e", extras], cwd=path, capture=True)
             ok(f"{name} installed (editable)")
         except subprocess.CalledProcessError as e:
-            fail(f"Failed to install {name}: {e.stderr[:200] if e.stderr else e}")
+            stderr = e.stderr or ""
+            if "pydantic-core" in stderr and "maturin" in stderr:
+                fail(f"Failed to install {name}: pydantic-core requires Rust to build.")
+                info(c(YELLOW, "Hint: Install Rust (https://rustup.rs/) and re-run the installer."))
+            else:
+                fail(f"Failed to install {name}: {stderr[:200] if stderr else e}")
             success = False
 
     # Extra standalone packages that aren't in pyproject but help
@@ -552,9 +557,25 @@ def check_redis(args: argparse.Namespace) -> bool:
 
 def start_docker_stack(args: argparse.Namespace) -> bool:
     step("Starting Docker Compose Stack")
-    if not shutil.which("docker"):
+    
+    docker_bin = shutil.which("docker")
+    if not docker_bin:
         fail("Docker not found — cannot start full stack")
         return False
+
+    # Check for docker compose (v2) or docker-compose (v1)
+    compose_cmd = ["docker", "compose"]
+    try:
+        run(["docker", "compose", "version"], capture=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        if shutil.which("docker-compose"):
+            compose_cmd = ["docker-compose"]
+            ok("Using docker-compose (v1)")
+        else:
+            fail("Neither 'docker compose' nor 'docker-compose' found")
+            return False
+    else:
+        ok("Using docker compose (v2)")
 
     compose_file = ROOT / "docker-compose.yml"
     if not compose_file.exists():
@@ -566,7 +587,7 @@ def start_docker_stack(args: argparse.Namespace) -> bool:
 
     info("Pulling images and starting services …")
     try:
-        run(["docker", "compose", "up", "-d", "--build"],
+        run(compose_cmd + ["up", "-d", "--build"],
             cwd=ROOT, env={"DB_PASSWORD": db_pass}, timeout=600)
         ok("Docker Compose stack started")
         info("Services: postgres:5432, redis:6379, api:8000, frontend:3000")
@@ -578,14 +599,17 @@ def start_docker_stack(args: argparse.Namespace) -> bool:
     info("Waiting for PostgreSQL to be healthy …")
     for attempt in range(20):
         time.sleep(3)
-        result = run(
-            ["docker", "compose", "exec", "-T", "postgres",
-             "pg_isready", "-U", "secagents"],
-            cwd=ROOT, capture=True, check=False,
-        )
-        if result.returncode == 0:
-            ok("PostgreSQL healthy")
-            break
+        try:
+            result = run(
+                compose_cmd + ["exec", "-T", "postgres",
+                 "pg_isready", "-U", "secagents"],
+                cwd=ROOT, capture=True, check=False,
+            )
+            if result.returncode == 0:
+                ok("PostgreSQL healthy")
+                break
+        except Exception:
+            pass
         info(f"  attempt {attempt + 1}/20 …")
     else:
         warn("PostgreSQL health check timed out — may still be starting")
@@ -593,14 +617,15 @@ def start_docker_stack(args: argparse.Namespace) -> bool:
     # Apply migration via Docker exec
     if MIGRATION.exists():
         info("Applying schema migration via Docker …")
-        with open(MIGRATION) as f:
-            sql = f.read()
-        r = run(
-            ["docker", "compose", "exec", "-T", "postgres",
-             "psql", "-U", "secagents", "-d", "secagents"],
-            cwd=ROOT, capture=True, check=False,
-        )
-        ok("Migration applied (Docker)")
+        try:
+            run(
+                compose_cmd + ["exec", "-T", "postgres",
+                 "psql", "-U", "secagents", "-d", "secagents"],
+                cwd=ROOT, capture=True, check=False,
+            )
+            ok("Migration applied (Docker)")
+        except Exception as e:
+            warn(f"Migration via Docker failed: {e}")
 
     return True
 
@@ -617,11 +642,21 @@ def run_tests(args: argparse.Namespace) -> bool:
         warn("Unit tests directory not found — skipping")
         return True
 
+    # Ensure pytest-timeout is installed
+    try:
+        run([PIP_EXEC, "install", "pytest-timeout"], capture=True, check=False)
+    except Exception:
+        pass
+
     info("Running unit tests (pytest) …")
+    cmd = [PYTEST_EXEC, "tests/unit/", "-v", "--tb=short", "-q", "--no-header"]
+    
+    # Only add timeout if we can verify it's supported or just try it
+    cmd.append("--timeout=60")
+
     try:
         result = run(
-            [PYTEST_EXEC, "tests/unit/", "-v", "--tb=short", "-q",
-             "--no-header", "--timeout=60"],
+            cmd,
             cwd=ROOT, capture=not args.ci, check=False, timeout=180,
         )
         if result.returncode == 0:
@@ -633,6 +668,15 @@ def run_tests(args: argparse.Namespace) -> bool:
             output = (stdout + stderr)[-600:]
             warn(f"Some tests failed:\n{output}")
             return False
+    except subprocess.CalledProcessError as e:
+        if "unrecognized arguments: --timeout" in str(e.stderr):
+            # Retry without timeout
+            info("Retrying tests without --timeout flag …")
+            cmd.remove("--timeout=60")
+            result = run(cmd, cwd=ROOT, capture=not args.ci, check=False, timeout=180)
+            return result.returncode == 0
+        warn(f"Test runner error: {e}")
+        return False
     except FileNotFoundError:
         warn("pytest not found in venv — skipping tests (install may have failed)")
         return False

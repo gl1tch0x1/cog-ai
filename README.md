@@ -476,11 +476,12 @@ Before installing, ensure your system meets these requirements:
 | Requirement | Minimum | Notes |
 |-------------|---------|-------|
 | **OS** | Linux / macOS / Windows (WSL2) | WSL2 strongly recommended on Windows |
-| **Python** | 3.11+ | Hard requirement — will exit if not met |
+| **Python** | 3.11+ | **Note:** Python 3.13 requires **Rust** (https://rustup.rs/) to build dependencies like `pydantic-core`. |
+| **Rust** | Required for Python 3.13 | Install via `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh` |
 | **RAM** | 8 GB | 16 GB recommended for full-stack mode |
 | **CPU** | 4 cores | More cores = faster concurrent scanning |
 | **Disk** | 2 GB free | For Docker images + scan artifacts |
-| **Docker** | 20.10+ | Required for `--docker` mode |
+| **Docker** | 20.10+ | Supports both `docker compose` (V2) and `docker-compose` (V1). |
 | **Git** | Any | For cloning the repo |
 
 **At least one LLM API key is required:**
