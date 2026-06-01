@@ -458,11 +458,11 @@ cd cog-ai
 cp .env.example .env
 nano .env  # Add at least one LLM API key (see Configuration section)
 
-# 3. Run the automated installer with Docker
-python3 installer.py --docker
+# 3. Run the automated installer
+python3 installer.py
 
-# 4. Run your first scan
-python3 -m secagents scan --target example.com --depth quick
+# 4. Run your first scan (entrypoint automatically deployed)
+./secagent scan --target example.com --depth quick
 ```
 
 That's it. The installer handles everything else: PostgreSQL setup, Redis, venv creation, dependency installation, and schema migration.

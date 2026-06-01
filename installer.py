@@ -171,6 +171,16 @@ def deploy_environment() -> bool:
 def install_arsenal(args: argparse.Namespace) -> bool:
     step("Arming The Arsenal")
     
+    # Pre-install critical dependencies that often fail due to Rust requirements
+    info("Preparing core dependencies...")
+    try:
+        # We try to install pydantic and its core as binaries specifically
+        # We use a broad version range to find any available wheel
+        run([PIP_EXEC, "install", "--only-binary", ":all:", "pydantic>=2.0.0", "pydantic-core>=2.0.0", "rich", "typer", "pytest-cov"], capture=True)
+        ok("Core dependencies pre-loaded from binaries.")
+    except:
+        warn("Could not pre-load all binaries. Proceeding with standard install...")
+
     packages = [
         ("Core Agents", PYTHON_AGENTS, ".[dev,browser]"),
         ("Orchestrator API", API_DIR, ".[dev]"),
@@ -180,6 +190,7 @@ def install_arsenal(args: argparse.Namespace) -> bool:
         if not path.exists(): continue
         info(f"Loading {name} modules...")
         try:
+            # We use --prefer-binary to avoid building from source
             run([PIP_EXEC, "install", "--prefer-binary", "-e", extras], cwd=path)
             ok(f"{name} armed and ready.")
         except subprocess.CalledProcessError as e:
@@ -199,11 +210,6 @@ def install_arsenal(args: argparse.Namespace) -> bool:
                     fail(msg)
                     return False
 
-    info("Installing telemetry and UI enhancements (rich, typer)...")
-    try:
-        run([PIP_EXEC, "install", "rich", "typer", "pytest-cov", "--quiet"])
-        ok("UI enhancements and test plugins loaded.")
-    except: pass
     return True
 
 def configure_intel() -> bool:

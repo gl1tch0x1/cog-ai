@@ -177,7 +177,7 @@ class WebSecurityAgent(BaseAgent):
             "$(sleep {delay})",
         ],
         "ssti": [
-            "{{_self.env.registerUndefinedFilterCallback(\"sleep\")}}{{_self.env.getFilter(\"{delay}\")}}",
+            "{{{{_self.env.registerUndefinedFilterCallback(\"sleep\")}}}}{{{{_self.env.getFilter(\"{delay}\")}}}}",
         ]
     }
 
