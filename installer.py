@@ -293,11 +293,40 @@ def main():
     print_final_report(overall_success)
     
     if overall_success and not args.no_start and not args.docker:
-        console.print("\n[bold cyan]󱐋 IGNITING API CONTROL PLANE...[/bold cyan]")
-        try:
-            subprocess.run([UVICORN_EXEC, "secagents_api.main:app", "--host", "0.0.0.0", "--port", "8000"])
-        except KeyboardInterrupt:
-            console.print("\n[bold yellow]⚠ Mission terminated by operator.[/bold yellow]")
+        ignite_api()
+
+def ignite_api():
+    """Starts the API server with port conflict resolution."""
+    console.print("\n[bold cyan]󱐋 IGNITING API CONTROL PLANE...[/bold cyan]")
+    
+    port = 8000
+    # Check if port is occupied
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if s.connect_ex(('localhost', port)) == 0:
+            console.print(f"[warning]󱈸 Port {port} is occupied. Attempting to clear path...[/warning]")
+            if not IS_WIN:
+                # Unix-style cleanup
+                try:
+                    subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
+                    time.sleep(1)
+                except: pass
+            else:
+                # Windows cleanup
+                try:
+                    res = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
+                    for line in res.stdout.splitlines():
+                        if f":{port}" in line and "LISTENING" in line:
+                            pid = line.strip().split()[-1]
+                            subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+                            time.sleep(1)
+                except: pass
+
+    try:
+        subprocess.run([UVICORN_EXEC, "secagents_api.main:app", "--host", "0.0.0.0", "--port", str(port)])
+    except KeyboardInterrupt:
+        console.print("\n[bold yellow]⚠ Mission terminated by operator.[/bold yellow]")
+    except Exception as e:
+        console.print(f"[error]󰅚 API Ignition failed: {e}[/error]")
 
 if __name__ == "__main__":
     main()
