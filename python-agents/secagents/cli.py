@@ -57,17 +57,17 @@ console = Console(theme=custom_theme)
 
 # ─── ASCII ARSENAL ───────────────────────────────────────────────────────────
 BANNER = r"""
- [bold #00ff00]███████╗[/] [bold #00cc00]███████╗[/] [bold #009900]██████╗[/]  [bold #00ffff]█████╗[/]  [bold #00cccc]██████╗[/] [bold #009999]███████╗[/] [bold #006666]███╗   ██╗[/] [bold #003333]████████╗[/]
- [bold #00ff00]██╔════╝[/] [bold #00cc00]██╔════╝[/] [bold #009900]██╔════╝[/] [bold #00ffff]██╔══██╗[/] [bold #00cccc]██╔════╝[/] [bold #009999]██╔════╝[/] [bold #006666]████╗  ██║[/] [bold #003333]╚══██╔══╝[/]
- [bold #00ff00]███████╗[/] [bold #00cc00]█████╗  [/] [bold #009900]██║     [/] [bold #00ffff]███████║[/] [bold #00cccc]██║  ███╗[/] [bold #009999]█████╗  [/] [bold #006666]██╔██╗ ██║[/] [bold #003333]   ██║   [/]
- [bold #00ff00]╚════██║[/] [bold #00cc00]██╔══╝  [/] [bold #009900]██║     [/] [bold #00ffff]██╔══██║[/] [bold #00cccc]██║   ██║[/] [bold #009999]██╔══╝  [/] [bold #006666]██║╚██╗██║[/] [bold #003333]   ██║   [/]
- [bold #00ff00]███████║[/] [bold #00cc00]███████╗[/] [bold #009900]╚██████╗[/] [bold #00ffff]██║  ██║[/] [bold #00cccc]╚██████╔╝[/] [bold #009999]███████╗[/] [bold #006666]██║ ╚████║[/] [bold #003333]   ██║   [/]
- [bold #00ff00]╚══════╝[/] [bold #00cc00]╚══════╝[/] [bold #009900] ╚═════╝[/] [bold #00ffff]╚═╝  ╚═╝[/] [bold #00cccc] ╚═════╝ [/] [bold #009999]╚══════╝[/] [bold #006666]╚═╝  ╚═══╝[/] [bold #003333]   ╚═╝   [/]
+    _____           ___                    __
+   / ___/___  _____/   | ____ ____  ____  / /______
+   \__ \/ _ \/ ___/ /| |/ __ `/ _ \/ __ \/ __/ ___/
+  ___/ /  __/ /__/ ___ / /_/ /  __/ / / / /_(__  )
+ /____/\___/\___/_/  |_\__, /\___/_/ /_/_/   \___/
+                      /____/
 """
 
 
 def print_banner():
-    banner_text = Text.from_markup(BANNER)
+    banner_text = Text(BANNER, style="hacker")
     subtext = Text.from_markup(
         f"\n[bold white]» AUTONOMOUS OFFENSIVE INTELLIGENCE FRAMEWORK «[/]\n[dim]VERSION {__version__} | RED TEAM OPERATIONS[/]\n"
     )
