@@ -94,13 +94,14 @@ class TestWebSecurityAgent:
         
         agent = WebSecurityAgent()
         
-        # Mock httpx client
+        # Mock httpx client response
         mock_resp = MagicMock()
         mock_resp.text = "Normal response"
         mock_resp.status_code = 200
         
-        with patch.object(agent, "client", new_callable=AsyncMock) as mock_client:
-            mock_client.get.return_value = mock_resp
+        # Patch the private _client or the httpx AsyncClient directly
+        with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = mock_resp
             
             task = {
                 "target": "http://example.com",
@@ -135,9 +136,8 @@ class TestAPISecurityAgent:
         mock_resp.json.return_value = {}
         mock_resp.headers = {}
         
-        with patch.object(agent, "client", new_callable=AsyncMock) as mock_client:
-            mock_client.request.return_value = mock_resp
-            mock_client.get.return_value = mock_resp
+        with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = mock_resp
             
             task = {
                 "target": "https://api.example.com",
@@ -161,16 +161,22 @@ class TestWeb3SecurityAgent:
     async def test_contract_audit(self):
         """Test smart contract auditing."""
         from secagents.agents.web3_security import Web3SecurityAgent
+        from pathlib import Path
         
         agent = Web3SecurityAgent()
         
-        # Mock file system
-        with patch("pathlib.Path.rglob") as mock_rglob:
-            mock_file = MagicMock()
-            mock_file.is_file.return_value = True
-            mock_file.read_text.return_value = "function mint() public {}"
-            mock_file.parts = ["contract.sol"]
-            mock_rglob.return_value = [mock_file]
+        # We patch rglob at the instance level or the Path class
+        # Correctly mock Path.rglob to return our mock file
+        mock_file = MagicMock(spec=Path)
+        mock_file.is_file.return_value = True
+        mock_file.read_text.return_value = "function mint() public {}"
+        mock_file.parts = ["contract.sol"]
+        mock_file.suffix = ".sol"
+        mock_file.__str__.return_value = "contract.sol"
+        
+        with patch("pathlib.Path.rglob", return_value=[mock_file]), \
+             patch("pathlib.Path.is_dir", return_value=True), \
+             patch("pathlib.Path.is_file", return_value=False):
             
             task = {
                 "target_path": "contracts/",

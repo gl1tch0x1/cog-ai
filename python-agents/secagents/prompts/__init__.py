@@ -70,7 +70,7 @@ Rules:
 - Analyze Token-2022 extensions for malicious logic
 - Document risk scores and high-impact recommendations"""
 
-VALIDATOR_PROMPT = """You are the Validator Agent for SecAgents. Your role is to confirm findings and eliminate false positives.""",old_string:
+VALIDATOR_PROMPT = """You are the Validator Agent for SecAgents. Your role is to confirm findings and eliminate false positives.
 
 Process:
 1. Replay the original proof-of-concept request

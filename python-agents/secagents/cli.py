@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 """
-SecAgent CLI — Industrial Power. Elite Intelligence. Mission Ready.
-
-Usage:
-  secagent scan --target example.com --depth standard
-  secagent vault --validate
-  secagent worker
+SecAgent CLI — Precision. Intelligence. Multi-Agent Mastery.
 """
 
 from __future__ import annotations
@@ -17,14 +12,16 @@ import sys
 from pathlib import Path
 from typing import List, Dict, Any
 
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn, TaskProgressColumn
 from rich.live import Live
 from rich.text import Text
 from rich.theme import Theme
 from rich.logging import RichHandler
+from rich.columns import Columns
+from rich.box import ROUNDED, HEAVY_EDGE, DOUBLE_EDGE
 import logging
 
 from secagents import __version__
@@ -39,7 +36,7 @@ from secagents.whichllm.hardware import detect_hardware, setup_ollama, recommend
 # ─── Aesthetic Configuration ────────────────────────────────────────────────
 custom_theme = Theme({
     "info": "cyan",
-    "warning": "yellow",
+    "warning": "bold yellow",
     "error": "bold red",
     "success": "bold green",
     "critical": "bold white on red",
@@ -48,6 +45,7 @@ custom_theme = Theme({
     "low": "bold blue",
     "hacker": "bold green",
     "target": "bold magenta",
+    "dim": "grey50",
 })
 
 console = Console(theme=custom_theme)
@@ -63,8 +61,8 @@ BANNER = r"""
 
 def print_banner():
     banner_text = Text(BANNER, style="hacker")
-    subtext = Text(f"\n» AUTONOMOUS OFFENSIVE INTELLIGENCE FRAMEWORK «\n[ VERSION {__version__} | RED TEAM DEPLOYMENT ]\n", style="bold white")
-    console.print(Panel(Text.assemble(banner_text, subtext), border_style="hacker", expand=False))
+    subtext = Text(f"\n» AUTONOMOUS OFFENSIVE INTELLIGENCE FRAMEWORK «\n[ VERSION {__version__} | RED TEAM OPERATIONS ]\n", style="bold white")
+    console.print(Panel(Group(banner_text, subtext), border_style="hacker", box=HEAVY_EDGE, expand=False))
 
 # ─── Core Logic ─────────────────────────────────────────────────────────────
 
@@ -146,27 +144,28 @@ async def cmd_scan(args: argparse.Namespace) -> int:
 
     try:
         with Progress(
-            SpinnerColumn(spinner_name="dots"),
+            SpinnerColumn(spinner_name="dots", style="cyan"),
             TextColumn("[progress.description]{task.description}"),
-            BarColumn(bar_width=40),
+            BarColumn(bar_width=40, complete_style="hacker", finished_style="success"),
+            TaskProgressColumn(),
             TimeElapsedColumn(),
             console=console,
         ) as progress:
-            # We add a visual task for the pipeline
-            progress.add_task(description=f"Orchestrating agents against {domain}...", total=None)
+            task = progress.add_task(description=f"Orchestrating agents against {domain}...", total=None)
             results = await pipeline.run()
+            progress.update(task, completed=100)
     except Exception as e:
         console.print(f"[error]❌ Mission Failure:[/error] {e}")
         return 2
 
     findings: List[Dict[str, Any]] = results.get("findings", [])
     
-    # Summary Table
-    table = Table(title="[bold white]MISSION INTELLIGENCE SUMMARY[/bold white]", show_header=True, header_style="bold cyan", box=None)
-    table.add_column("SEVERITY", justify="center")
+    # Intelligence Summary
+    table = Table(title="[bold white]MISSION INTELLIGENCE SUMMARY[/bold white]", show_header=True, header_style="bold cyan", box=ROUNDED, expand=True)
+    table.add_column("SEVERITY", justify="center", width=12)
     table.add_column("VULNERABILITY", justify="left")
-    table.add_column("TARGET", justify="left")
-    table.add_column("CONFIDENCE", justify="center")
+    table.add_column("TARGET ENDPOINT", justify="left")
+    table.add_column("CONFIDENCE", justify="center", width=10)
 
     for f in findings:
         sev = f.get("severity", "medium").lower()
@@ -180,22 +179,29 @@ async def cmd_scan(args: argparse.Namespace) -> int:
     console.print("\n")
     if findings:
         console.print(table)
+        
+        # Attack Chain visualization hint
+        if results.get("chains"):
+            console.print(Panel(f"[bold yellow]⛓️ Attack Chains Detected:[/bold yellow] Found {len(results['chains'])} correlated exploit path(s).", border_style="yellow"))
     else:
-        console.print("[success]✓ No vulnerabilities detected in target scope.[/success]")
+        console.print(Panel("[success]✓ No vulnerabilities detected in target scope.[/success]", border_style="success"))
 
     console.print(f"\n[success]✅ OPERATION COMPLETE[/success] — {len(findings)} Validated Signal(s) Extracted.")
     
     if results.get("reports"):
-        console.print("\n[bold white]BREACH REPORTS:[/bold white]")
+        r_table = Table(box=None, padding=(0, 2))
+        r_table.add_column("FORMAT", style="bold white")
+        r_table.add_column("BREACH REPORT PATH", style="blue underline")
         for fmt, path in results["reports"].items():
-            console.print(f"  • {fmt.upper():<8}: [blue underline]{path}[/blue underline]")
+            r_table.add_row(fmt.upper(), str(path))
+        console.print(Panel(r_table, title="[bold white]DELIVERABLES[/bold white]", border_style="cyan"))
     
     return 0
 
 async def cmd_vault(args: argparse.Namespace) -> int:
     v = Vault(env_path=Path(args.env))
     if args.validate:
-        with console.status("[bold cyan]Probing API keys for validity..."):
+        with console.status("[bold cyan]Probing operational keys for validity..."):
             await v.validate_all()
     else:
         v.load()
@@ -207,7 +213,7 @@ async def cmd_vault(args: argparse.Namespace) -> int:
             v.reports.append(KeyReport(name, status, mask_secret(val) if val else ""))
     
     # Enhanced Vault Table
-    table = Table(title="[bold white]OPERATIONAL MANIFEST STATUS[/bold white]", box=None)
+    table = Table(title="[bold white]OPERATIONAL MANIFEST STATUS[/bold white]", box=ROUNDED, expand=True)
     table.add_column("SERVICE", style="cyan")
     table.add_column("STATUS", justify="center")
     table.add_column("FRAGMENT", style="dim")
@@ -237,13 +243,14 @@ async def cmd_keyhacks(args: argparse.Namespace) -> int:
         return 0
 
     console.print(f"[info]󰋼[/info] Auditing {len(paths)} assets for leaked secrets...")
-    findings = await agent.scan_paths(paths[:1000])
+    with console.status("[bold yellow]Scanning assets..."):
+        findings = await agent.scan_paths(paths[:1000])
     
-    table = Table(title="LEAKED CREDENTIAL AUDIT", box=None)
-    table.add_column("STATUS", justify="center")
+    table = Table(title="LEAKED CREDENTIAL AUDIT", box=ROUNDED, expand=True)
+    table.add_column("STATUS", justify="center", width=12)
     table.add_column("SERVICE")
     table.add_column("FRAGMENT")
-    table.add_column("SOURCE", style="dim")
+    table.add_column("SOURCE ASSET", style="dim")
 
     for f in findings:
         status = "[green]LIVE[/green]" if f.valid else ("[red]DEAD[/red]" if f.valid is False else "[yellow]UNKNOWN[/yellow]")
@@ -252,7 +259,7 @@ async def cmd_keyhacks(args: argparse.Namespace) -> int:
     if findings:
         console.print(table)
     else:
-        console.print("[success]✓ No leaked keys detected in local assets.[/success]")
+        console.print(Panel("[success]✓ No leaked keys detected in local assets.[/success]", border_style="success"))
     return 0
 
 def main() -> None:
@@ -273,14 +280,19 @@ def main() -> None:
             worker_main()
         elif args.command == "preflight":
             results = run_preflight()
+            table = Table(title="SYSTEM PREFLIGHT DIAGNOSTICS", box=ROUNDED)
+            table.add_column("CHECK")
+            table.add_column("RESULT")
             for r in results:
-                console.print(f"  {'[green]✓[/green]' if r.passed else '[red]✗[/red]'} [bold]{r.name}:[/bold] {r.message}")
+                table.add_row(r.name, f"{'[green]PASS[/green]' if r.passed else '[red]FAIL[/red]'} — {r.message}")
+            console.print(table)
         elif args.command == "update":
-            _, msg = check_and_apply_tool_update()
-            console.print(f"[info]{msg}[/info]")
+            with console.status("[bold magenta]Checking for framework updates..."):
+                _, msg = check_and_apply_tool_update()
+            console.print(Panel(msg, title="UPDATE STATUS", border_style="magenta"))
         elif args.command == "hardware":
             profile = detect_hardware()
-            console.print(f"[info]Hardware Detected:[/info] {profile.summary()}")
+            console.print(Panel(f"Hardware Summary: {profile.summary()}", title="HARDWARE INTELLIGENCE", border_style="cyan"))
     except KeyboardInterrupt:
         console.print("\n[warning]⚠ Mission aborted by operator.[/warning]")
         sys.exit(130)
