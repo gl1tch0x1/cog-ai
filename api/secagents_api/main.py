@@ -6,7 +6,7 @@ import time
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from loguru import logger
 from sqlalchemy import text
 from opentelemetry import trace
@@ -19,13 +19,15 @@ from secagents_api.database import engine
 
 # Configure Loguru
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
-LOG_FORMAT = os.environ.get("LOG_FORMAT", "json")
+LOG_FORMAT = os.environ.get("LOG_FORMAT", "pretty")
 
 logger.remove()  # Remove default handler
 if LOG_FORMAT == "json":
     logger.add(sys.stdout, level=LOG_LEVEL, serialize=True)
 else:
-    logger.add(sys.stdout, level=LOG_LEVEL)
+    # High-fidelity offensive security palette
+    fmt = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <white>{message}</white>"
+    logger.add(sys.stdout, level=LOG_LEVEL, format=fmt, colorize=True)
 
 # Configure OpenTelemetry
 trace.set_tracer_provider(TracerProvider())
@@ -36,7 +38,7 @@ if os.environ.get("ENABLE_TRACING") == "true":
 
 app = FastAPI(
     title="SecAgents API",
-    version="0.2.0",
+    version="0.3.0-dev",
     description="Control-plane API for SecAgents cybersecurity platform",
 )
 
@@ -68,11 +70,7 @@ async def log_requests(request: Request, call_next):
     process_time = (time.time() - start_time) * 1000
     
     logger.info(
-        "Request processed",
-        method=request.method,
-        path=request.url.path,
-        status_code=response.status_code,
-        duration_ms=round(process_time, 2),
+        f"{request.method} {request.url.path} | Status: {response.status_code} | Latency: {round(process_time, 2)}ms",
     )
     return response
 
@@ -94,6 +92,12 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 
 
+@app.get("/", include_in_schema=False)
+async def root():
+    """Redirect to API documentation."""
+    return RedirectResponse(url="/docs")
+
+
 @app.get("/health")
 async def health():
     db_status = "ok"
@@ -106,7 +110,7 @@ async def health():
 
     return {
         "status": "operational" if db_status == "ok" else "degraded",
-        "version": "0.2.0",
+        "version": "0.3.0-dev",
         "components": {
             "api": "ok",
             "database": db_status,
