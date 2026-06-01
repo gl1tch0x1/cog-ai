@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-SecAgent CLI — autonomous offensive security platform.
+SecAgent CLI — Industrial Power. Elite Intelligence. Mission Ready.
 
 Usage:
-  python -m secagents scan --target example.com --depth standard
-  python -m secagents vault --validate
-  python -m secagents worker
+  secagent scan --target example.com --depth standard
+  secagent vault --validate
+  secagent worker
 """
 
 from __future__ import annotations
@@ -15,6 +15,17 @@ import asyncio
 import os
 import sys
 from pathlib import Path
+from typing import List, Dict, Any
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
+from rich.live import Live
+from rich.text import Text
+from rich.theme import Theme
+from rich.logging import RichHandler
+import logging
 
 from secagents import __version__
 from secagents.operational.integrity import check_os_security_updates, check_and_apply_tool_update
@@ -25,6 +36,37 @@ from secagents.infra.scope import enforce_scope, ScopeViolationError
 from secagents.agents.keyhacks import KeyhacksAgent
 from secagents.whichllm.hardware import detect_hardware, setup_ollama, recommend_local_model
 
+# ─── Aesthetic Configuration ────────────────────────────────────────────────
+custom_theme = Theme({
+    "info": "cyan",
+    "warning": "yellow",
+    "error": "bold red",
+    "success": "bold green",
+    "critical": "bold white on red",
+    "high": "bold red",
+    "medium": "bold yellow",
+    "low": "bold blue",
+    "hacker": "bold green",
+    "target": "bold magenta",
+})
+
+console = Console(theme=custom_theme)
+
+# ─── ASCII ARSENAL ───────────────────────────────────────────────────────────
+BANNER = r"""
+    __                     ____                               
+   / /_  ________  _______/ __ \____ _      ______  ________ 
+  / __ \/ ___/ _ \/ ___/ / / / __ `/ | /| / / __ \/ ___/ _ \
+ / / / / /  /  __/ /__/ /_/ / /_/ /| |/ |/ / / / / /  /  __/
+/_/ /_/_/   \___/\___/\____/\__,_/ |__/|__/_/ /_/_/   \___/ 
+"""
+
+def print_banner():
+    banner_text = Text(BANNER, style="hacker")
+    subtext = Text(f"\n» AUTONOMOUS OFFENSIVE INTELLIGENCE FRAMEWORK «\n[ VERSION {__version__} | RED TEAM DEPLOYMENT ]\n", style="bold white")
+    console.print(Panel(Text.assemble(banner_text, subtext), border_style="hacker", expand=False))
+
+# ─── Core Logic ─────────────────────────────────────────────────────────────
 
 def _load_env() -> None:
     try:
@@ -33,63 +75,63 @@ def _load_env() -> None:
     except ImportError:
         Vault(Path(".env")).load()
 
-
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="secagent",
         description="SecAgent — Autonomous Offensive AI Framework (authorized testing only)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--version", action="version", version=f"SecAgent {__version__}")
 
     sub = p.add_subparsers(dest="command", required=True)
 
-    scan = sub.add_parser("scan", help="Run autonomous scan pipeline")
-    scan.add_argument("--target", "-t", required=True, help="Target domain or URL")
+    # Scan Command
+    scan = sub.add_parser("scan", help="Execute autonomous red-team pipeline")
+    scan.add_argument("--target", "-t", required=True, help="Target domain or root URL")
     scan.add_argument(
         "--depth",
         choices=["quick", "standard", "deep"],
         default="standard",
-        help="Scan depth",
+        help="Scan intensity and depth",
     )
-    scan.add_argument("--workers", "-w", type=int, default=4, help="Parallel agent workers")
-    scan.add_argument("--skip-os-check", action="store_true", help="Skip OS security update check")
-    scan.add_argument("--no-sandbox", action="store_true", help="Disable Docker sandbox (not recommended)")
-    scan.add_argument("--no-arsenal", action="store_true", help="Skip secondary Arsenal heuristic probes")
-    scan.add_argument("--insecure", action="store_true", help="Disable TLS certificate verification")
-    scan.add_argument("--setup-local-llm", action="store_true", help="Install optimal Ollama model via whichllm")
-    scan.add_argument("--results-dir", default="cog-ai-results", help="Output directory")
+    scan.add_argument("--workers", "-w", type=int, default=4, help="Parallel agent swarm size")
+    scan.add_argument("--skip-os-check", action="store_true", help="Bypass OS security baseline check")
+    scan.add_argument("--no-sandbox", action="store_true", help="Bypass Docker Fortress isolation")
+    scan.add_argument("--no-arsenal", action="store_true", help="Skip heuristic Arsenal probes")
+    scan.add_argument("--insecure", action="store_true", help="Bypass SSL/TLS verification")
+    scan.add_argument("--setup-local-llm", action="store_true", help="Auto-provision local Ollama model")
+    scan.add_argument("--results-dir", default="cog-ai-results", help="Breach report directory")
 
-    vault = sub.add_parser("vault", help="Validate and display API key status")
-    vault.add_argument("--validate", action="store_true", help="Probe keys with cheap API calls")
-    vault.add_argument("--env", default=".env", help="Path to .env file")
+    # Vault Command
+    vault = sub.add_parser("vault", help="Interface with secret storage and API keys")
+    vault.add_argument("--validate", action="store_true", help="Probe key validity via live API calls")
+    vault.add_argument("--env", default=".env", help="Path to operational manifest")
 
-    preflight = sub.add_parser("preflight", help="Run system preflight checks")
-    preflight.add_argument("--skip-os-check", action="store_true")
+    # Keyhacks Command
+    keyhacks = sub.add_parser("keyhacks", help="Scan local assets for leaked credentials")
+    keyhacks.add_argument("paths", nargs="+", help="Files or directories to audit")
+    keyhacks.add_argument("--rate-limit", type=float, default=10.0, help="Max validations/min")
 
-    update = sub.add_parser("update", help="Check and apply tool updates (explicit only)")
-    update.add_argument("--check-only", action="store_true")
-
-    hardware = sub.add_parser("hardware", help="Detect hardware and recommend local LLM")
-    hardware.add_argument("--install", action="store_true", help="Pull recommended Ollama model")
-
-    keyhacks = sub.add_parser("keyhacks", help="Scan files for leaked API keys")
-    keyhacks.add_argument("paths", nargs="+", help="Files or directories to scan")
-    keyhacks.add_argument("--rate-limit", type=float, default=10.0, help="Max validations per minute")
-
-    sub.add_parser("worker", help="Run Redis workflow worker (API scan dispatch)")
+    # Infrastructure Commands
+    sub.add_parser("preflight", help="Validate system readiness")
+    sub.add_parser("update", help="Check and apply framework updates")
+    sub.add_parser("hardware", help="Hardware-aware model optimization")
+    sub.add_parser("worker", help="Start background workflow processor")
 
     return p
-
 
 async def cmd_scan(args: argparse.Namespace) -> int:
     if args.insecure:
         os.environ["SECAGENT_VERIFY_SSL"] = "false"
 
     try:
-        enforce_scope(args.target)
+        domain = enforce_scope(args.target)
     except ScopeViolationError as e:
-        print(f"⛔ {e}")
+        console.print(f"[error]⛔ Scope Violation:[/error] {e}")
         return 2
+
+    console.print(f"\n[bold magenta]󰋼[/bold magenta] [bold white]INITIATING OPERATION:[/bold white] [target]{args.target}[/target]")
+    console.print(f"[dim]Parameters: depth={args.depth}, workers={args.workers}[/dim]\n")
 
     pipeline = ScanPipeline(
         target=args.target,
@@ -101,72 +143,84 @@ async def cmd_scan(args: argparse.Namespace) -> int:
         results_dir=Path(args.results_dir),
         arsenal_secondary=not args.no_arsenal,
     )
-    print(f"\n🎯 SecAgent scan: {args.target} (depth={args.depth}, workers={args.workers})\n")
+
     try:
-        results = await pipeline.run()
+        with Progress(
+            SpinnerColumn(spinner_name="dots"),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(bar_width=40),
+            TimeElapsedColumn(),
+            console=console,
+        ) as progress:
+            # We add a visual task for the pipeline
+            progress.add_task(description=f"Orchestrating agents against {domain}...", total=None)
+            results = await pipeline.run()
     except Exception as e:
-        print(f"❌ Scan execution failed: {e}")
+        console.print(f"[error]❌ Mission Failure:[/error] {e}")
         return 2
 
-    n = len(results.get("findings", []))
-    print(f"\n✅ Mission complete — {n} validated finding(s)")
-    if results.get("reports"):
-        for fmt, path in results["reports"].items():
-            print(f"   📄 {fmt}: {path}")
-    return 0
+    findings: List[Dict[str, Any]] = results.get("findings", [])
+    
+    # Summary Table
+    table = Table(title="[bold white]MISSION INTELLIGENCE SUMMARY[/bold white]", show_header=True, header_style="bold cyan", box=None)
+    table.add_column("SEVERITY", justify="center")
+    table.add_column("VULNERABILITY", justify="left")
+    table.add_column("TARGET", justify="left")
+    table.add_column("CONFIDENCE", justify="center")
 
+    for f in findings:
+        sev = f.get("severity", "medium").lower()
+        table.add_row(
+            f"[{sev}]{sev.upper()}[/{sev}]",
+            f.get("title", f.get("type", "Unknown")),
+            f.get("url", f.get("endpoint", "N/A")),
+            f"{int(float(f.get('confidence', 0))*100)}%"
+        )
+
+    console.print("\n")
+    if findings:
+        console.print(table)
+    else:
+        console.print("[success]✓ No vulnerabilities detected in target scope.[/success]")
+
+    console.print(f"\n[success]✅ OPERATION COMPLETE[/success] — {len(findings)} Validated Signal(s) Extracted.")
+    
+    if results.get("reports"):
+        console.print("\n[bold white]BREACH REPORTS:[/bold white]")
+        for fmt, path in results["reports"].items():
+            console.print(f"  • {fmt.upper():<8}: [blue underline]{path}[/blue underline]")
+    
+    return 0
 
 async def cmd_vault(args: argparse.Namespace) -> int:
     v = Vault(env_path=Path(args.env))
     if args.validate:
-        await v.validate_all()
+        with console.status("[bold cyan]Probing API keys for validity..."):
+            await v.validate_all()
     else:
         v.load()
+        from secagents.vault.env_loader import KeyReport, KeyStatus, mask_secret
         v.reports = []
-        for name in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "SHODAN_API_KEY", "CHAOS_API_KEY", "LLM_API_KEYS"):
+        for name in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY", "LLM_API_KEYS"):
             val = os.environ.get(name, "")
-            from secagents.vault.env_loader import KeyReport, KeyStatus, mask_secret
             status = KeyStatus.PRESENT if val else KeyStatus.MISSING
             v.reports.append(KeyReport(name, status, mask_secret(val) if val else ""))
-    v.print_status()
+    
+    # Enhanced Vault Table
+    table = Table(title="[bold white]OPERATIONAL MANIFEST STATUS[/bold white]", box=None)
+    table.add_column("SERVICE", style="cyan")
+    table.add_column("STATUS", justify="center")
+    table.add_column("FRAGMENT", style="dim")
+
+    from secagents.vault.env_loader import KeyStatus
+    for r in v.reports:
+        status_text = "[green]ACTIVE[/green]" if r.status == KeyStatus.VALID else \
+                      ("[red]MISSING[/red]" if r.status == KeyStatus.MISSING else \
+                       ("[yellow]REVOKED[/yellow]" if r.status == KeyStatus.INVALID else "[blue]PRESENT[/blue]"))
+        table.add_row(r.name, status_text, r.masked_value)
+
+    console.print(table)
     return 0
-
-
-def cmd_preflight(args: argparse.Namespace) -> int:
-    if not args.skip_os_check:
-        ok, msg = check_os_security_updates(skip=False)
-        print(msg)
-        if not ok:
-            return 1
-    results = run_preflight()
-    for r in results:
-        sym = "✓" if r.passed else "✗"
-        print(f"  {sym} {r.name}: {r.message}")
-    return 0 if preflight_ok(results) else 1
-
-
-def cmd_update(args: argparse.Namespace) -> int:
-    if args.check_only:
-        from secagents.operational.integrity import check_tool_update
-        r = check_tool_update()
-        print(r.message)
-        return 0
-    _, msg = check_and_apply_tool_update()
-    print(msg)
-    return 0
-
-
-def cmd_hardware(args: argparse.Namespace) -> int:
-    profile = detect_hardware()
-    print(f"Hardware: {profile.summary()}")
-    _, model = recommend_local_model(profile)
-    print(f"Recommended: ollama / {model}")
-    if args.install:
-        ok, msg = setup_ollama(model, pull=True)
-        print(msg)
-        return 0 if ok else 1
-    return 0
-
 
 async def cmd_keyhacks(args: argparse.Namespace) -> int:
     agent = KeyhacksAgent(requests_per_minute=args.rate_limit)
@@ -174,47 +228,62 @@ async def cmd_keyhacks(args: argparse.Namespace) -> int:
     for p in args.paths:
         path = Path(p)
         if path.is_dir():
-            paths.extend(str(f) for f in path.rglob("*") if f.is_file() and not any(part in f.parts for part in (".git", ".venv", ".next", "node_modules")))
+            paths.extend(str(f) for f in path.rglob("*") if f.is_file() and not any(part in f.parts for part in (".git", ".venv", "node_modules")))
         elif path.is_file():
             paths.append(str(path))
     
     if not paths:
-        print("No files found to scan.")
+        console.print("[warning]⚠ No assets found for auditing.[/warning]")
         return 0
 
-    findings = await agent.scan_paths(paths[:500])
+    console.print(f"[info]󰋼[/info] Auditing {len(paths)} assets for leaked secrets...")
+    findings = await agent.scan_paths(paths[:1000])
+    
+    table = Table(title="LEAKED CREDENTIAL AUDIT", box=None)
+    table.add_column("STATUS", justify="center")
+    table.add_column("SERVICE")
+    table.add_column("FRAGMENT")
+    table.add_column("SOURCE", style="dim")
+
     for f in findings:
-        status = "LIVE" if f.valid else ("UNKNOWN" if f.valid is None else "DEAD")
-        print(f"  [{status}] {f.service}: {f.key_masked} — {f.message} ({f.source})")
+        status = "[green]LIVE[/green]" if f.valid else ("[red]DEAD[/red]" if f.valid is False else "[yellow]UNKNOWN[/yellow]")
+        table.add_row(status, f.service, f.key_masked, f.source)
+
+    if findings:
+        console.print(table)
+    else:
+        console.print("[success]✓ No leaked keys detected in local assets.[/success]")
     return 0
-
-
-def cmd_worker() -> int:
-    from secagents.worker.runner import main as worker_main
-    worker_main()
-    return 0
-
 
 def main() -> None:
     _load_env()
+    print_banner()
     parser = build_parser()
     args = parser.parse_args()
 
-    if args.command == "scan":
-        sys.exit(asyncio.run(cmd_scan(args)))
-    elif args.command == "vault":
-        sys.exit(asyncio.run(cmd_vault(args)))
-    elif args.command == "preflight":
-        sys.exit(cmd_preflight(args))
-    elif args.command == "update":
-        sys.exit(cmd_update(args))
-    elif args.command == "hardware":
-        sys.exit(cmd_hardware(args))
-    elif args.command == "keyhacks":
-        sys.exit(asyncio.run(cmd_keyhacks(args)))
-    elif args.command == "worker":
-        sys.exit(cmd_worker())
-
+    try:
+        if args.command == "scan":
+            sys.exit(asyncio.run(cmd_scan(args)))
+        elif args.command == "vault":
+            sys.exit(asyncio.run(cmd_vault(args)))
+        elif args.command == "keyhacks":
+            sys.exit(asyncio.run(cmd_keyhacks(args)))
+        elif args.command == "worker":
+            from secagents.worker.runner import main as worker_main
+            worker_main()
+        elif args.command == "preflight":
+            results = run_preflight()
+            for r in results:
+                console.print(f"  {'[green]✓[/green]' if r.passed else '[red]✗[/red]'} [bold]{r.name}:[/bold] {r.message}")
+        elif args.command == "update":
+            _, msg = check_and_apply_tool_update()
+            console.print(f"[info]{msg}[/info]")
+        elif args.command == "hardware":
+            profile = detect_hardware()
+            console.print(f"[info]Hardware Detected:[/info] {profile.summary()}")
+    except KeyboardInterrupt:
+        console.print("\n[warning]⚠ Mission aborted by operator.[/warning]")
+        sys.exit(130)
 
 if __name__ == "__main__":
     main()

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from rich.console import Console
+from rich.text import Text
 
 from secagents.operational.integrity import check_os_security_updates, OS_UPDATE_MESSAGE
 from secagents.vault.env_loader import Vault
@@ -49,6 +51,7 @@ class ScanPipeline:
         self.results_dir = results_dir or Path(os.environ.get("RESULTS_DIR", "cog-ai-results"))
         self.arsenal_secondary = arsenal_secondary
         self.results: dict = {"target": target, "phases": {}, "findings": [], "chains": []}
+        self.console = Console()
 
     async def run(self) -> dict:
         # 0. Scope gate (fail-closed)
@@ -56,47 +59,51 @@ class ScanPipeline:
             domain = enforce_scope(self.target)
             self.results["domain"] = domain
         except ScopeViolationError as e:
-            raise SystemExit(f"⛔ Scope violation: {e}") from e
+            self.console.print(f"[bold red]⛔ Scope Violation:[/bold red] {e}")
+            raise SystemExit(1) from e
 
-        # 1. Pre-flight — OS security updates only (no auto git pull on scan)
+        # 1. Pre-flight
         ok, msg = check_os_security_updates(skip=self.skip_os_check)
         if not ok:
-            raise SystemExit(OS_UPDATE_MESSAGE)
+            self.console.print(f"[bold red]CRITICAL:[/bold red] {OS_UPDATE_MESSAGE}")
+            raise SystemExit(1)
         self.results["phases"]["preflight"] = {"os_check": msg}
 
         # 2. The Vault
         from secagents.core.skill_manager import skill_manager
         if skill_manager.skills:
-             print(f"🔥 Advanced Hunting Skills loaded from SKILL.md")
+             self.console.print(f"[bold green]🔥[/bold green] [white]Advanced Hunting Skills loaded from SKILL.md[/white]")
         
         vault = Vault()
         await vault.validate_all()
-        vault.print_status()
+        # vault.print_status() # CLI handles this now
+        
         if not vault.any_llm_available() and not os.environ.get("OLLAMA_HOST"):
-            print("⚠️  No LLM keys validated — attempting local Ollama setup")
+            self.console.print("[bold yellow]⚠️  No LLM keys validated — attempting local Ollama fallback[/bold yellow]")
             setup_ollama(pull=self.setup_local_llm)
 
         if self.setup_local_llm:
             hw = detect_hardware()
-            print(f"  Hardware: {hw.summary()}")
+            self.console.print(f"  [cyan]Hardware:[/cyan] {hw.summary()}")
             _, ollama_msg = setup_ollama(pull=True)
-            print(f"  whichllm: {ollama_msg}")
+            self.console.print(f"  [cyan]whichllm:[/cyan] {ollama_msg}")
 
         llm = OmniLLM()
         consensus = ConsensusEngine(llm=llm, min_agreement=2 if len(llm.providers) >= 2 else 1)
 
-        # 3. Fortress sandbox (optional)
+        # 3. Fortress sandbox
         sandbox = None
         if self.use_sandbox:
             try:
                 sandbox = FortressSandbox(self.results_dir)
                 self.results["run_dir"] = str(sandbox.run_dir)
                 if not sandbox.ensure_image():
-                    print("⚠️  Fortress image missing — build: docker build -t secagents/sandbox:latest -f sandbox/Dockerfile sandbox/")
+                    self.console.print("[yellow]⚠️  Fortress image missing — build: docker build -t secagents/sandbox:latest -f sandbox/Dockerfile sandbox/[/yellow]")
             except RuntimeError as e:
-                print(f"⚠️  Fortress unavailable: {e}")
+                self.console.print(f"[yellow]⚠️  Fortress unavailable: {e}[/yellow]")
 
         # 4. External intel
+        self.console.print("[bold blue]󰋼[/bold blue] [white]Extracting external intelligence...[/white]")
         intel: dict = {}
         chaos = ChaosIntel()
         shodan = ShodanIntel()
@@ -109,7 +116,8 @@ class ScanPipeline:
             intel["shodan"] = dns_data
             self.results["phases"]["shodan"] = {"records": len(dns_data)}
 
-        # 5. The Armada — execute full DAG with real handlers
+        # 5. The Armada — execute full DAG
+        self.console.print("[bold blue]󰋼[/bold blue] [white]Deploying agent swarm (The Armada)...[/white]")
         shared: dict = {
             "target": domain,
             "depth": self.depth,
@@ -131,8 +139,9 @@ class ScanPipeline:
             "specialists": [s.name for s in armada.hire_specialists(graph)],
         }
 
-        # Secondary: Arsenal heuristic probes (require Crucible proof)
+        # Secondary: Arsenal heuristic probes
         if self.arsenal_secondary:
+            self.console.print("[bold blue]󰋼[/bold blue] [white]Engaging secondary heuristic probes (The Arsenal)...[/white]")
             scanner = ArsenalScanner(verify_ssl=True)
             endpoints = shared.get("endpoints") or [f"https://{domain}"]
             limit = 25 if self.depth == "quick" else 50 if self.depth == "standard" else 100
@@ -153,7 +162,7 @@ class ScanPipeline:
                         "deterministic": False,
                     })
 
-        # Deduplicate by url + type
+        # Deduplicate
         seen: set[str] = set()
         unique: list[dict] = []
         for f in raw_findings:
@@ -163,6 +172,7 @@ class ScanPipeline:
                 unique.append(f)
 
         # 6. The Crucible
+        self.console.print("[bold blue]󰋼[/bold blue] [white]Validating signals and correlating chains (The Crucible)...[/white]")
         crucible = CrucibleValidator(consensus=consensus)
         validated = await crucible.validate_batch(unique)
         self.results["findings"] = validated
@@ -175,6 +185,7 @@ class ScanPipeline:
             registry.register(f)
 
         # 7. Remediation
+        self.console.print("[bold blue]󰋼[/bold blue] [white]Generating breach reports and auto-patches...[/white]")
         patcher = AutoPatcher()
         patcher.apply_to_findings(validated)
         reporter = ReportGenerator(self.results_dir / "reports")
@@ -190,6 +201,7 @@ class ScanPipeline:
             await notifier.create_jira_tickets(validated)
 
         # 8. Hermes
+        self.console.print("[bold blue]󰋼[/bold blue] [white]Archiving mission data to persistent memory...[/white]")
         hermes = HermesMemory(self.results_dir / "hermes" / "memory.db")
         retro = RetrospectiveAgent(hermes)
         self.results["hermes"] = retro.analyze(self.results)
