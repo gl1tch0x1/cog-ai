@@ -45,7 +45,9 @@ class InputValidator:
 
     @staticmethod
     def validate_domain(domain: str) -> tuple[bool, str]:
-        pattern = re.compile(r"^(?:\*\.)?[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$")
+        pattern = re.compile(
+            r"^(?:\*\.)?[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$"
+        )
         if pattern.match(domain):
             return True, domain
         return False, "Invalid domain format"

@@ -18,8 +18,7 @@ router = APIRouter()
 
 @router.get("", response_model=List[ReportResponse])
 async def list_reports(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     result = await db.execute(select(Report))
     return result.scalars().all()
@@ -29,7 +28,7 @@ async def list_reports(
 async def get_report(
     report_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(select(Report).where(Report.id == report_id))
     report = result.scalar_one_or_none()
@@ -42,11 +41,13 @@ async def get_report(
 async def download_report(
     report_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(select(Report).where(Report.id == report_id))
     report = result.scalar_one_or_none()
     if not report:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Report not found")
     # In production: return FileResponse or S3 presigned URL
-    return JSONResponse({"download_url": f"/reports/{report_id}/file", "file_path": report.file_path})
+    return JSONResponse(
+        {"download_url": f"/reports/{report_id}/file", "file_path": report.file_path}
+    )

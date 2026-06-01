@@ -58,14 +58,16 @@ class ReportGenerator:
         for f in findings:
             poc = f.get("poc", {})
             curl = poc.get("curl_command", "N/A") if isinstance(poc, dict) else "N/A"
-            lines.extend([
-                f"### {f.get('title', f.get('vuln_type', 'Finding'))}",
-                f"- **Severity:** {f.get('severity', 'unknown')}",
-                f"- **URL:** {f.get('url', 'N/A')}",
-                f"- **PoC:** `{curl}`",
-                f"- **Remediation:** {f.get('remediation', f.get('remediation_patch', {}).get('patch_snippet', 'See patch'))}",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"### {f.get('title', f.get('vuln_type', 'Finding'))}",
+                    f"- **Severity:** {f.get('severity', 'unknown')}",
+                    f"- **URL:** {f.get('url', 'N/A')}",
+                    f"- **PoC:** `{curl}`",
+                    f"- **Remediation:** {f.get('remediation', f.get('remediation_patch', {}).get('patch_snippet', 'See patch'))}",
+                    "",
+                ]
+            )
         if chains:
             lines.append("## Attack Chains")
             for c in chains:

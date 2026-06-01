@@ -53,7 +53,9 @@ async def get_target(
     current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(Target).where(Target.id == target_id, Target.created_by == current_user.id)
+        select(Target).where(
+            Target.id == target_id, Target.created_by == current_user.id
+        )
     )
     target = result.scalar_one_or_none()
     if not target:

@@ -38,7 +38,9 @@ def build_scan_handlers(
 
     async def recon_handler(*, context: dict, action: str, **_) -> dict:
         target = context.get("target", shared["target"])
-        autopilot = Autopilot(target, {"depth": shared.get("depth", "standard"), "intel": shared.get("intel", {})})
+        autopilot = Autopilot(
+            target, {"depth": shared.get("depth", "standard"), "intel": shared.get("intel", {})}
+        )
         await autopilot._phase_recon()
         endpoints = autopilot.results.get("endpoints", [])
         if not endpoints:

@@ -115,7 +115,9 @@ class CVEScanner:
 
         # Fallback: parallel curl probe
         alive = []
-        async with httpx.AsyncClient(verify=self.config.verify_ssl, timeout=self.config.timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            verify=self.config.verify_ssl, timeout=self.config.timeout, follow_redirects=True
+        ) as client:
             sem = asyncio.Semaphore(self.config.threads * 2)
 
             async def probe(url: str):
@@ -144,7 +146,9 @@ class CVEScanner:
             if self.config.checks:
                 checks = [c for c in checks if c.key in self.config.checks]
 
-            async with httpx.AsyncClient(verify=self.config.verify_ssl, timeout=self.config.timeout, follow_redirects=True) as client:
+            async with httpx.AsyncClient(
+                verify=self.config.verify_ssl, timeout=self.config.timeout, follow_redirects=True
+            ) as client:
                 for check in checks:
                     result = await self._run_check(client, url, check)
                     if result and result.vulnerable:
@@ -152,7 +156,9 @@ class CVEScanner:
 
             self.progress.processed += 1
 
-    async def _run_check(self, client: httpx.AsyncClient, url: str, check: CheckDefinition) -> CheckResult | None:
+    async def _run_check(
+        self, client: httpx.AsyncClient, url: str, check: CheckDefinition
+    ) -> CheckResult | None:
         """Execute a single deterministic check."""
         payloads = build_payloads(check.key, url)
 
@@ -164,8 +170,12 @@ class CVEScanner:
                 vulnerable, proof = verify_finding(check.key, resp.text, headers, {})
                 if vulnerable:
                     return CheckResult(
-                        name=check.name, severity=check.severity, vulnerable=True,
-                        target_url=url, poc_url=url, proof_signal=proof,
+                        name=check.name,
+                        severity=check.severity,
+                        vulnerable=True,
+                        target_url=url,
+                        poc_url=url,
+                        proof_signal=proof,
                     )
             except Exception:
                 pass
@@ -191,8 +201,12 @@ class CVEScanner:
 
                 if vulnerable:
                     return CheckResult(
-                        name=check.name, severity=check.severity, vulnerable=True,
-                        target_url=url, poc_url=poc_url, proof_signal=proof,
+                        name=check.name,
+                        severity=check.severity,
+                        vulnerable=True,
+                        target_url=url,
+                        poc_url=poc_url,
+                        proof_signal=proof,
                     )
             except Exception:
                 continue

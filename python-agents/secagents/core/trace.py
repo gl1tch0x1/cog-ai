@@ -55,24 +55,22 @@ class Tracer:
         span = Span(name=name, parent_id=parent_id, metadata=meta)
         with self._lock:
             self._spans.append(span)
-        
+
         logger.info(
-            "Span started",
-            span_id=span.id,
-            span_name=span.name,
-            parent_id=span.parent_id,
-            **meta
+            "Span started", span_id=span.id, span_name=span.name, parent_id=span.parent_id, **meta
         )
         return span
 
-    def finish_span(self, span: Span, status: str = "ok", tokens_in: int = 0, tokens_out: int = 0) -> None:
+    def finish_span(
+        self, span: Span, status: str = "ok", tokens_in: int = 0, tokens_out: int = 0
+    ) -> None:
         span.finish(status=status)
         span.tokens_in = tokens_in
         span.tokens_out = tokens_out
         with self._lock:
             self._token_total["in"] += tokens_in
             self._token_total["out"] += tokens_out
-        
+
         logger.info(
             "Span finished",
             span_id=span.id,
@@ -80,21 +78,27 @@ class Tracer:
             status=span.status,
             duration_ms=round(span.duration_ms, 2),
             tokens_in=tokens_in,
-            tokens_out=tokens_out
+            tokens_out=tokens_out,
         )
 
     def get_trace(self, root_id: str | None = None) -> list[dict]:
         """Get trace tree. If root_id given, only that subtree."""
         with self._lock:
-            spans = self._spans if not root_id else [
-                s for s in self._spans if s.id == root_id or s.parent_id == root_id
-            ]
+            spans = (
+                self._spans
+                if not root_id
+                else [s for s in self._spans if s.id == root_id or s.parent_id == root_id]
+            )
             return [
                 {
-                    "id": s.id, "name": s.name, "parent": s.parent_id,
-                    "duration_ms": round(s.duration_ms, 1), "status": s.status,
+                    "id": s.id,
+                    "name": s.name,
+                    "parent": s.parent_id,
+                    "duration_ms": round(s.duration_ms, 1),
+                    "status": s.status,
                     "tokens": {"in": s.tokens_in, "out": s.tokens_out},
-                    "model": s.model, "metadata": s.metadata,
+                    "model": s.model,
+                    "metadata": s.metadata,
                 }
                 for s in spans
             ]

@@ -17,6 +17,7 @@ def load_workflow(path: str) -> dict:
     except json.JSONDecodeError:
         try:
             import yaml
+
             return yaml.safe_load(content)
         except ImportError:
             raise ImportError("Install pyyaml: pip install pyyaml")
@@ -24,6 +25,7 @@ def load_workflow(path: str) -> dict:
 
 def resolve_variables(template: str, context: dict) -> str:
     """Resolve ${variable.path} references in strings."""
+
     def replacer(match):
         path = match.group(1)
         value = context
@@ -83,6 +85,7 @@ class WorkflowDSL:
 
     async def _run_parallel(self, step: dict, executors: dict) -> list:
         import asyncio
+
         tasks = step.get("tasks", [])
         coros = [self._run_task(t, executors) for t in tasks]
         return await asyncio.gather(*coros, return_exceptions=True)

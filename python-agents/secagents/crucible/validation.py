@@ -32,7 +32,9 @@ class CrucibleValidator:
 
         # Deterministic CVE findings: proof_signal required
         if finding.get("deterministic") or finding.get("source") == "cve_checks":
-            poc_verified = bool(finding.get("proof_signal")) and await self._replay_deterministic(finding)
+            poc_verified = bool(finding.get("proof_signal")) and await self._replay_deterministic(
+                finding
+            )
         else:
             poc_verified = await self._execute_poc_strict(finding, poc)
 

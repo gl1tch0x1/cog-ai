@@ -26,7 +26,7 @@ class AutoHealer:
                 return result
             except Exception as e:
                 last_error = e
-                delay = self.base_delay * (2 ** attempt)
+                delay = self.base_delay * (2**attempt)
                 self._logger.audit(
                     AuditCategory.ERROR_OCCURRED,
                     f"Auto-healer attempt {attempt + 1}/{self.max_retries} failed: {e}",

@@ -3,17 +3,16 @@
 import subprocess
 import json
 import logging
-from typing import Dict
 
 logger = logging.getLogger(__name__)
 
 
 class DeploymentManager:
     """Manage SecAgents deployment across environments."""
-    
+
     def __init__(self, environment: str = "staging"):
         self.environment = environment
-    
+
     def deploy_docker(self) -> bool:
         """Deploy using Docker Compose."""
         try:
@@ -24,7 +23,7 @@ class DeploymentManager:
         except Exception as e:
             logger.error(f"Docker deployment failed: {e}")
             return False
-    
+
     def deploy_kubernetes(self) -> bool:
         """Deploy using Kubernetes."""
         try:
@@ -35,16 +34,14 @@ class DeploymentManager:
         except Exception as e:
             logger.error(f"Kubernetes deployment failed: {e}")
             return False
-    
+
     def health_check(self) -> bool:
         """Check deployment health."""
         try:
             response = subprocess.run(
-                ["curl", "-s", "http://localhost:8000/health"],
-                capture_output=True,
-                text=True
+                ["curl", "-s", "http://localhost:8000/health"], capture_output=True, text=True
             )
-            
+
             if response.returncode == 0:
                 health = json.loads(response.stdout)
                 return health.get("status") == "healthy"
@@ -52,7 +49,7 @@ class DeploymentManager:
         except Exception as e:
             logger.error(f"Health check failed: {e}")
             return False
-    
+
     def rollback(self) -> bool:
         """Rollback to previous deployment."""
         try:

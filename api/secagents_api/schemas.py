@@ -10,6 +10,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field, field_validator
 import re as _re
 
+
 class Severity(str, Enum):
     CRITICAL = "critical"
     HIGH = "high"
@@ -28,9 +29,7 @@ class WorkflowStatus(str, Enum):
 
 
 # --- Targets ---
-_DOMAIN_RE = _re.compile(
-    r"^(?!\-)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$"
-)
+_DOMAIN_RE = _re.compile(r"^(?!\-)([a-zA-Z0-9\-]{1,63}\.)+[a-zA-Z]{2,}$")
 
 
 class TargetCreate(BaseModel):
@@ -126,6 +125,7 @@ class ReportResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 # --- Auth ---
 _EMAIL_RE = _re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")

@@ -47,7 +47,9 @@ class AutoPatcher:
 
     def generate_patch(self, finding: dict) -> dict:
         vuln = finding.get("vuln_type", finding.get("type", "")).lower()
-        template = PATCH_TEMPLATES.get(vuln, "# Review manually — no auto-patch template for this class")
+        template = PATCH_TEMPLATES.get(
+            vuln, "# Review manually — no auto-patch template for this class"
+        )
         return {
             "vuln_type": vuln,
             "patch_snippet": template,

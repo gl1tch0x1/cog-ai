@@ -54,7 +54,9 @@ sys.exit(0 if resp.status_code == 200 else 1)
 
     @staticmethod
     def _fingerprint(finding: dict) -> str:
-        raw = f"{finding.get('title', '')}|{finding.get('location', '')}|{finding.get('payload', '')}"
+        raw = (
+            f"{finding.get('title', '')}|{finding.get('location', '')}|{finding.get('payload', '')}"
+        )
         return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -72,11 +74,19 @@ class ConsensusLLM:
         for model in self.models:
             try:
                 result = await llm_fn(finding, model=model)
-                votes.append({"model": model, "valid": result.get("valid", False), "confidence": result.get("confidence", 0.5)})
+                votes.append(
+                    {
+                        "model": model,
+                        "valid": result.get("valid", False),
+                        "confidence": result.get("confidence", 0.5),
+                    }
+                )
             except Exception:
                 continue
 
-        valid_votes = sum(1 for v in votes if v["valid"] and v["confidence"] >= self.confidence_threshold)
+        valid_votes = sum(
+            1 for v in votes if v["valid"] and v["confidence"] >= self.confidence_threshold
+        )
         avg_confidence = sum(v["confidence"] for v in votes) / max(len(votes), 1)
 
         return {

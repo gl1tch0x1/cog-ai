@@ -92,7 +92,9 @@ def setup_ollama(model: str | None = None, pull: bool = True) -> tuple[bool, str
         return True, f"Recommended model: {model}"
 
     try:
-        subprocess.run(["ollama", "pull", model], capture_output=True, text=True, timeout=600, check=True)
+        subprocess.run(
+            ["ollama", "pull", model], capture_output=True, text=True, timeout=600, check=True
+        )
         os.environ["OLLAMA_MODEL"] = model
         return True, f"Pulled {model} via Ollama"
     except subprocess.CalledProcessError as e:

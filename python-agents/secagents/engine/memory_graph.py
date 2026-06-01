@@ -50,7 +50,8 @@ class MemoryGraph:
     def neighbors(self, node_id: str, relation: str | None = None) -> list[str]:
         with self._lock:
             return [
-                e["target"] for e in self._edges
+                e["target"]
+                for e in self._edges
                 if e["source"] == node_id and (relation is None or e["relation"] == relation)
             ]
 
@@ -60,7 +61,9 @@ class MemoryGraph:
         with self._lock:
             data = {"nodes": self._nodes, "edges": self._edges}
             # Atomic write
-            tmp = tempfile.NamedTemporaryFile(mode="w", dir=self._path.parent, delete=False, suffix=".tmp")
+            tmp = tempfile.NamedTemporaryFile(
+                mode="w", dir=self._path.parent, delete=False, suffix=".tmp"
+            )
             json.dump(data, tmp, default=str)
             tmp.close()
             Path(tmp.name).replace(self._path)

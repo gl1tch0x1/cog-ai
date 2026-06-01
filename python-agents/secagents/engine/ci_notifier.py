@@ -22,7 +22,13 @@ class CINotifier:
             sev = f.get("severity", "info")
             severity_counts[sev] = severity_counts.get(sev, 0) + 1
 
-        icon = "🔴" if severity_counts.get("critical") else "🟠" if severity_counts.get("high") else "🟢"
+        icon = (
+            "🔴"
+            if severity_counts.get("critical")
+            else "🟠"
+            if severity_counts.get("high")
+            else "🟢"
+        )
         text = f"{icon} *SecAgents Scan Complete*\n"
         text += " | ".join(f"{k}: {v}" for k, v in severity_counts.items())
         text += f"\nReport: `{report_path}`"
@@ -45,13 +51,18 @@ class CINotifier:
                         "summary": f"[SecAgents] {f.get('title', 'Finding')}",
                         "description": f"Severity: {f.get('severity')}\nCVSS: {f.get('cvss', 'N/A')}\n\n{f.get('summary', '')}",
                         "issuetype": {"name": "Bug"},
-                        "priority": {"name": "Highest" if f.get("severity") == "critical" else "High"},
+                        "priority": {
+                            "name": "Highest" if f.get("severity") == "critical" else "High"
+                        },
                     }
                 }
                 resp = await client.post(
                     f"{self.jira_url}/rest/api/2/issue",
                     json=issue,
-                    headers={"Authorization": f"Bearer {self.jira_token}", "Content-Type": "application/json"},
+                    headers={
+                        "Authorization": f"Bearer {self.jira_token}",
+                        "Content-Type": "application/json",
+                    },
                 )
                 if resp.status_code == 201:
                     created.append(resp.json().get("key", ""))

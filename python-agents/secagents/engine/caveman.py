@@ -10,16 +10,73 @@ import re
 
 # Words to strip (articles, filler, verbose connectors)
 STRIP_WORDS = {
-    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "shall", "can", "that", "which", "who",
-    "whom", "this", "these", "those", "it", "its", "there", "here",
-    "very", "really", "just", "quite", "rather", "somewhat", "basically",
-    "actually", "literally", "simply", "obviously", "clearly", "certainly",
-    "definitely", "probably", "possibly", "perhaps", "maybe", "also",
-    "furthermore", "moreover", "however", "therefore", "consequently",
-    "additionally", "nevertheless", "nonetheless", "accordingly",
-    "please", "kindly", "note", "importantly",
+    "the",
+    "a",
+    "an",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "shall",
+    "can",
+    "that",
+    "which",
+    "who",
+    "whom",
+    "this",
+    "these",
+    "those",
+    "it",
+    "its",
+    "there",
+    "here",
+    "very",
+    "really",
+    "just",
+    "quite",
+    "rather",
+    "somewhat",
+    "basically",
+    "actually",
+    "literally",
+    "simply",
+    "obviously",
+    "clearly",
+    "certainly",
+    "definitely",
+    "probably",
+    "possibly",
+    "perhaps",
+    "maybe",
+    "also",
+    "furthermore",
+    "moreover",
+    "however",
+    "therefore",
+    "consequently",
+    "additionally",
+    "nevertheless",
+    "nonetheless",
+    "accordingly",
+    "please",
+    "kindly",
+    "note",
+    "importantly",
 }
 
 # Verbose phrases → compressed equivalents
@@ -55,15 +112,15 @@ PHRASE_MAP = {
 
 # Patterns to preserve (never compress)
 PRESERVE_PATTERNS = [
-    re.compile(r"https?://\S+"),           # URLs
+    re.compile(r"https?://\S+"),  # URLs
     re.compile(r"\b\d+\.\d+\.\d+\.\d+\b"),  # IPs
-    re.compile(r"CVE-\d{4}-\d+"),          # CVE IDs
-    re.compile(r"CWE-\d+"),               # CWE IDs
-    re.compile(r"\{[^}]+\}"),             # JSON/template blocks
-    re.compile(r"\[[^\]]+\]"),            # Array notation
-    re.compile(r"`[^`]+`"),              # Code blocks
-    re.compile(r'"[^"]*"'),             # Quoted strings
-    re.compile(r"'[^']*'"),             # Single-quoted strings
+    re.compile(r"CVE-\d{4}-\d+"),  # CVE IDs
+    re.compile(r"CWE-\d+"),  # CWE IDs
+    re.compile(r"\{[^}]+\}"),  # JSON/template blocks
+    re.compile(r"\[[^\]]+\]"),  # Array notation
+    re.compile(r"`[^`]+`"),  # Code blocks
+    re.compile(r'"[^"]*"'),  # Quoted strings
+    re.compile(r"'[^']*'"),  # Single-quoted strings
 ]
 
 

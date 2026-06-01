@@ -45,6 +45,7 @@ app = FastAPI(
 # Instrument FastAPI
 FastAPIInstrumentor.instrument_app(app)
 
+
 # Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -54,6 +55,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "Internal Server Error", "type": exc.__class__.__name__},
     )
 
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     logger.error(f"HTTP {exc.status_code}: {exc.detail}")
@@ -62,17 +64,19 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         content={"detail": exc.detail},
     )
 
+
 # Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     process_time = (time.time() - start_time) * 1000
-    
+
     logger.info(
         f"{request.method} {request.url.path} | Status: {response.status_code} | Latency: {round(process_time, 2)}ms",
     )
     return response
+
 
 # CORS — allow frontend origins
 _origins = os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(",")

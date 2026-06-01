@@ -44,5 +44,7 @@ def evaluate_finding(finding: dict) -> EvalResult:
     return EvalResult(
         score=score,
         passed=score >= 0.8,
-        feedback=f"Finding completeness: {score:.0%}. Missing: {missing}" if missing else "Complete",
+        feedback=f"Finding completeness: {score:.0%}. Missing: {missing}"
+        if missing
+        else "Complete",
     )

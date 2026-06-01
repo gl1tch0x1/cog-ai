@@ -51,18 +51,60 @@ class CircuitState:
 
 # Default routing table
 DEFAULT_ROUTES: list[ModelRoute] = [
-    ModelRoute("groq", "llama-3.1-70b-versatile", 0.001, 200, 8192,
-               [TaskType.CLASSIFICATION, TaskType.SUMMARIZATION], priority=0),
-    ModelRoute("openai", "gpt-4o-mini", 0.002, 400, 16384,
-               [TaskType.SUMMARIZATION, TaskType.CLASSIFICATION, TaskType.CODING], priority=1),
-    ModelRoute("openai", "gpt-4o", 0.010, 800, 128000,
-               [TaskType.CODING, TaskType.TOOL_ORCHESTRATION, TaskType.PLANNING], priority=2),
-    ModelRoute("anthropic", "claude-sonnet-4-20250514", 0.015, 1200, 200000,
-               [TaskType.REASONING, TaskType.VALIDATION, TaskType.PLANNING], priority=2),
-    ModelRoute("deepseek", "deepseek-chat", 0.002, 600, 64000,
-               [TaskType.CODING, TaskType.REASONING], priority=1),
-    ModelRoute("ollama", "llama3", 0.0, 500, 8192,
-               [TaskType.CLASSIFICATION, TaskType.SUMMARIZATION], priority=3),
+    ModelRoute(
+        "groq",
+        "llama-3.1-70b-versatile",
+        0.001,
+        200,
+        8192,
+        [TaskType.CLASSIFICATION, TaskType.SUMMARIZATION],
+        priority=0,
+    ),
+    ModelRoute(
+        "openai",
+        "gpt-4o-mini",
+        0.002,
+        400,
+        16384,
+        [TaskType.SUMMARIZATION, TaskType.CLASSIFICATION, TaskType.CODING],
+        priority=1,
+    ),
+    ModelRoute(
+        "openai",
+        "gpt-4o",
+        0.010,
+        800,
+        128000,
+        [TaskType.CODING, TaskType.TOOL_ORCHESTRATION, TaskType.PLANNING],
+        priority=2,
+    ),
+    ModelRoute(
+        "anthropic",
+        "claude-sonnet-4-20250514",
+        0.015,
+        1200,
+        200000,
+        [TaskType.REASONING, TaskType.VALIDATION, TaskType.PLANNING],
+        priority=2,
+    ),
+    ModelRoute(
+        "deepseek",
+        "deepseek-chat",
+        0.002,
+        600,
+        64000,
+        [TaskType.CODING, TaskType.REASONING],
+        priority=1,
+    ),
+    ModelRoute(
+        "ollama",
+        "llama3",
+        0.0,
+        500,
+        8192,
+        [TaskType.CLASSIFICATION, TaskType.SUMMARIZATION],
+        priority=3,
+    ),
 ]
 
 # Hint → TaskType mapping
@@ -84,14 +126,15 @@ class AIGateway:
         self._circuits: dict[str, CircuitState] = {}
         self._stats: dict[str, dict] = {}  # provider:model → {calls, tokens, latency_sum}
 
-    def select_model(self, task_type: TaskType | str, optimize: str = "balanced") -> ModelRoute | None:
+    def select_model(
+        self, task_type: TaskType | str, optimize: str = "balanced"
+    ) -> ModelRoute | None:
         """Select best model for task type. optimize: cost|speed|balanced."""
         if isinstance(task_type, str):
             task_type = HINT_MAP.get(task_type, TaskType.CLASSIFICATION)
 
         candidates = [
-            r for r in self.routes
-            if task_type in r.task_types and not self._is_circuit_open(r)
+            r for r in self.routes if task_type in r.task_types and not self._is_circuit_open(r)
         ]
         if not candidates:
             # Fallback: any available model
@@ -114,8 +157,7 @@ class AIGateway:
         if isinstance(task_type, str):
             task_type = HINT_MAP.get(task_type, TaskType.CLASSIFICATION)
         return sorted(
-            [r for r in self.routes if task_type in r.task_types],
-            key=lambda r: r.priority
+            [r for r in self.routes if task_type in r.task_types], key=lambda r: r.priority
         )
 
     def record_success(self, route: ModelRoute, latency_ms: float, tokens: int) -> None:
@@ -142,5 +184,7 @@ class AIGateway:
         return self._circuits[key]
 
     def get_stats(self) -> dict:
-        return {k: {**v, "avg_latency": v["latency_sum"] / max(v["calls"], 1)}
-                for k, v in self._stats.items()}
+        return {
+            k: {**v, "avg_latency": v["latency_sum"] / max(v["calls"], 1)}
+            for k, v in self._stats.items()
+        }

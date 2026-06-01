@@ -59,7 +59,9 @@ class ExternalTools:
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
             lines = [line for line in stdout.decode().strip().split("\n") if line]
-            return ToolResult(tool=tool, success=proc.returncode == 0, output=lines, raw=stdout.decode())
+            return ToolResult(
+                tool=tool, success=proc.returncode == 0, output=lines, raw=stdout.decode()
+            )
         except asyncio.TimeoutError:
             proc.kill()
             await proc.wait()
@@ -72,6 +74,10 @@ class ExternalTools:
         tasks = {t: ExternalTools.run(t, target) for t in tools}
         results = await asyncio.gather(*tasks.values(), return_exceptions=True)
         return {
-            name: (r if isinstance(r, ToolResult) else ToolResult(tool=name, success=False, output=[], raw=str(r)))
+            name: (
+                r
+                if isinstance(r, ToolResult)
+                else ToolResult(tool=name, success=False, output=[], raw=str(r))
+            )
             for name, r in zip(tasks.keys(), results)
         }

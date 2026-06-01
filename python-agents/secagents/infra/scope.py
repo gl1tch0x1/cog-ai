@@ -29,9 +29,7 @@ class ScopePolicy:
 
         for blocked in self.blocked_domains:
             if _domain_matches(domain, blocked):
-                raise ScopeViolationError(
-                    f"Target '{domain}' is blocked by BLOCKED_DOMAINS"
-                )
+                raise ScopeViolationError(f"Target '{domain}' is blocked by BLOCKED_DOMAINS")
 
         if not self.allowed_domains:
             raise ScopeViolationError(

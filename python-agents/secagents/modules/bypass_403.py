@@ -49,7 +49,9 @@ async def bypass_403(url: str, path: str, client: httpx.AsyncClient | None = Non
             try:
                 resp = await client.get(url, headers=headers)
                 if resp.status_code not in (403, 401, 500):
-                    results.append({"method": "header", "headers": headers, "status": resp.status_code})
+                    results.append(
+                        {"method": "header", "headers": headers, "status": resp.status_code}
+                    )
             except Exception:
                 continue
 
@@ -60,7 +62,9 @@ async def bypass_403(url: str, path: str, client: httpx.AsyncClient | None = Non
             try:
                 resp = await client.get(mutated)
                 if resp.status_code not in (403, 401, 404, 500):
-                    results.append({"method": "path_fuzz", "url": mutated, "status": resp.status_code})
+                    results.append(
+                        {"method": "path_fuzz", "url": mutated, "status": resp.status_code}
+                    )
             except Exception:
                 continue
 
@@ -69,7 +73,9 @@ async def bypass_403(url: str, path: str, client: httpx.AsyncClient | None = Non
             try:
                 resp = await client.request(method, url)
                 if resp.status_code not in (403, 401, 405, 500):
-                    results.append({"method": "method_swap", "http_method": method, "status": resp.status_code})
+                    results.append(
+                        {"method": "method_swap", "http_method": method, "status": resp.status_code}
+                    )
             except Exception:
                 continue
     finally:

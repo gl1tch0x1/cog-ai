@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class ValidatorAgent(BaseAgent):
     """Validates findings to reduce false positives.
-    
+
     Responsibilities:
     - PoC request replay
     - Response analysis
@@ -21,12 +21,14 @@ class ValidatorAgent(BaseAgent):
     """
 
     def __init__(self):
-        super().__init__(AgentConfig(
-            role=AgentRole.VALIDATOR,
-            name="validator",
-            tools=["http_request", "replay_request", "compare_response"],
-            timeout_seconds=300.0,
-        ))
+        super().__init__(
+            AgentConfig(
+                role=AgentRole.VALIDATOR,
+                name="validator",
+                tools=["http_request", "replay_request", "compare_response"],
+                timeout_seconds=300.0,
+            )
+        )
         self.logger = logging.getLogger("secagents.validator")
 
     def base_system_prompt(self) -> str:
@@ -56,11 +58,13 @@ class ValidatorAgent(BaseAgent):
             high_conf_findings = []
             for finding in findings:
                 if finding.get("confidence", 1.0) < 0.5:
-                    rejected.append({
-                        **finding,
-                        "validated": False,
-                        "rejection_reason": "Low initial confidence",
-                    })
+                    rejected.append(
+                        {
+                            **finding,
+                            "validated": False,
+                            "rejection_reason": "Low initial confidence",
+                        }
+                    )
                 else:
                     high_conf_findings.append(finding)
 
@@ -73,27 +77,29 @@ class ValidatorAgent(BaseAgent):
                     self.logger.warning(f"Validation failed: {str(result)}")
                     inconclusive.append({**finding, "validation_status": "error"})
                 elif result["is_valid"]:
-                    validated.append({
-                        **finding,
-                        "validated": True,
-                        "validation_confidence": result["confidence"],
-                        "validation_method": result["method"],
-                        "validation_steps": result["steps"],
-                    })
+                    validated.append(
+                        {
+                            **finding,
+                            "validated": True,
+                            "validation_confidence": result["confidence"],
+                            "validation_method": result["method"],
+                            "validation_steps": result["steps"],
+                        }
+                    )
                 else:
-                    rejected.append({
-                        **finding,
-                        "validated": False,
-                        "rejection_reason": result["reason"],
-                    })
+                    rejected.append(
+                        {
+                            **finding,
+                            "validated": False,
+                            "rejection_reason": result["reason"],
+                        }
+                    )
 
             total = len(findings)
             valid_count = len(validated)
             rejection_rate = len(rejected) / total if total > 0 else 0
 
-            confidence = self._calculate_validation_confidence(
-                valid_count, total, rejection_rate
-            )
+            confidence = self._calculate_validation_confidence(valid_count, total, rejection_rate)
 
             result = {
                 "validated": validated,
@@ -129,21 +135,21 @@ class ValidatorAgent(BaseAgent):
 
     async def _validate(self, finding: dict) -> dict:
         """Validate a single finding.
-        
+
         Args:
             finding: Finding to validate
-            
+
         Returns:
             Validation result
         """
         finding_type = finding.get("type", "unknown")
-        
+
         self.logger.info(f"Validating {finding_type} finding")
 
         try:
             # Primary validation: replay PoC
             poc_result = await self._replay_poc(finding)
-            
+
             if not poc_result["valid"]:
                 return {
                     "is_valid": False,
@@ -153,7 +159,7 @@ class ValidatorAgent(BaseAgent):
 
             # Secondary validation: test consistency
             consistency = await self._test_consistency(finding, poc_result)
-            
+
             if not consistency["consistent"]:
                 return {
                     "is_valid": False,
@@ -163,10 +169,8 @@ class ValidatorAgent(BaseAgent):
 
             # Tertiary validation: edge case testing
             edge_cases = await self._test_edge_cases(finding)
-            
-            confidence = self._calculate_finding_confidence(
-                poc_result, consistency, edge_cases
-            )
+
+            confidence = self._calculate_finding_confidence(poc_result, consistency, edge_cases)
 
             return {
                 "is_valid": True,
@@ -184,10 +188,10 @@ class ValidatorAgent(BaseAgent):
 
     async def _replay_poc(self, finding: dict) -> dict:
         """Replay the original PoC request.
-        
+
         Args:
             finding: Finding with PoC details
-            
+
         Returns:
             Replay result
         """
@@ -225,18 +229,18 @@ class ValidatorAgent(BaseAgent):
 
     async def _test_consistency(self, finding: dict, poc_result: dict) -> dict:
         """Test for consistent behavior on multiple runs.
-        
+
         Args:
             finding: Finding to validate
             poc_result: Result from initial PoC replay
-            
+
         Returns:
             Consistency result
         """
 
         try:
             results = []
-            
+
             # Run PoC multiple times
             for i in range(3):
                 await asyncio.sleep(0.02)
@@ -259,10 +263,10 @@ class ValidatorAgent(BaseAgent):
 
     async def _test_edge_cases(self, finding: dict) -> dict:
         """Test edge cases to confirm vulnerability.
-        
+
         Args:
             finding: Finding to validate
-            
+
         Returns:
             Edge case test results
         """
@@ -344,14 +348,16 @@ class ValidatorAgent(BaseAgent):
             ],
         }
 
-    def _calculate_finding_confidence(self, poc_result: dict, consistency: dict, edge_cases: dict) -> float:
+    def _calculate_finding_confidence(
+        self, poc_result: dict, consistency: dict, edge_cases: dict
+    ) -> float:
         """Calculate overall finding confidence.
-        
+
         Args:
             poc_result: PoC replay result
             consistency: Consistency test result
             edge_cases: Edge case test results
-            
+
         Returns:
             Confidence score 0.0-1.0
         """
@@ -378,14 +384,16 @@ class ValidatorAgent(BaseAgent):
 
         return round(min(confidence, 1.0), 2)
 
-    def _calculate_validation_confidence(self, valid_count: int, total: int, rejection_rate: float) -> float:
+    def _calculate_validation_confidence(
+        self, valid_count: int, total: int, rejection_rate: float
+    ) -> float:
         """Calculate overall validation confidence.
-        
+
         Args:
             valid_count: Number of validated findings
             total: Total findings
             rejection_rate: Proportion of rejected findings
-            
+
         Returns:
             Confidence score 0.0-1.0
         """
@@ -393,7 +401,7 @@ class ValidatorAgent(BaseAgent):
             return 1.0
 
         base = 0.5
-        
+
         # Increase confidence with validation rate
         validation_rate = valid_count / total
         base += validation_rate * 0.25
@@ -403,4 +411,3 @@ class ValidatorAgent(BaseAgent):
             base -= (rejection_rate - 0.5) * 0.2
 
         return round(max(0.0, min(base, 1.0)), 2)
-

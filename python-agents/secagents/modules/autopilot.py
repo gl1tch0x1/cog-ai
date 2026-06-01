@@ -32,7 +32,10 @@ class Autopilot:
         await self._phase_correlate()
 
         self._telemetry.save()
-        self._logger.audit(AuditCategory.SCAN_COMPLETE, f"Autopilot complete: {len(self.results['findings'])} findings")
+        self._logger.audit(
+            AuditCategory.SCAN_COMPLETE,
+            f"Autopilot complete: {len(self.results['findings'])} findings",
+        )
         return self.results
 
     async def _phase_recon(self) -> None:
@@ -61,14 +64,15 @@ class Autopilot:
                     self.results["findings"].append(finding)
                 except (json.JSONDecodeError, ValueError):
                     if line.strip():
-                        self.results["findings"].append({"title": line, "source": tool, "severity": "info"})
+                        self.results["findings"].append(
+                            {"title": line, "source": tool, "severity": "info"}
+                        )
 
     async def _phase_validate(self) -> None:
         self._telemetry.record_action("autopilot", "validate_start")
         # Filter out low-confidence findings
         self.results["findings"] = [
-            f for f in self.results["findings"]
-            if f.get("severity", "info") != "info"
+            f for f in self.results["findings"] if f.get("severity", "info") != "info"
         ]
 
     async def _phase_correlate(self) -> None:

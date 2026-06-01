@@ -92,7 +92,9 @@ class OmniLLM:
     ) -> LLMResponse:
         cfg = self._select_provider(provider)
         if not cfg:
-            raise RuntimeError("No LLM provider configured. Set LLM_API_KEYS or OPENAI_API_KEY in .env")
+            raise RuntimeError(
+                "No LLM provider configured. Set LLM_API_KEYS or OPENAI_API_KEY in .env"
+            )
 
         await get_rate_limiter().check(cfg.name)
         model = model or cfg.model or DEFAULT_MODELS.get(cfg.name, "gpt-4o-mini")
@@ -198,7 +200,10 @@ class OmniLLM:
         )
         resp = await self._client.post(
             url,
-            json={"contents": [{"parts": [{"text": text}]}], "generationConfig": {"maxOutputTokens": max_tokens}},
+            json={
+                "contents": [{"parts": [{"text": text}]}],
+                "generationConfig": {"maxOutputTokens": max_tokens},
+            },
         )
         resp.raise_for_status()
         data = resp.json()

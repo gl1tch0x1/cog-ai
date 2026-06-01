@@ -47,17 +47,16 @@ class ConsensusEngine:
             except Exception as e:
                 votes.append({"provider": cfg.name, "valid": False, "error": str(e)[:80]})
 
-        positive = sum(
-            1 for v in votes
-            if v.get("valid") and float(v.get("confidence", 0)) >= 0.75
-        )
+        positive = sum(1 for v in votes if v.get("valid") and float(v.get("confidence", 0)) >= 0.75)
         agreed = positive >= self.min_agreement
         return ConsensusResult(
             agreed=agreed,
             votes=votes,
             agreement_count=positive,
             min_required=self.min_agreement,
-            summary=f"{positive}/{len(votes)} providers agree" if agreed else "Consensus not reached",
+            summary=f"{positive}/{len(votes)} providers agree"
+            if agreed
+            else "Consensus not reached",
         )
 
     async def _ask_provider(self, provider: str | None, finding: dict) -> dict:

@@ -26,14 +26,21 @@ class DockerManager:
         return shutil.which("docker") is not None
 
     @staticmethod
-    async def run_sandboxed(command: str, config: ContainerConfig | None = None) -> tuple[int, str, str]:
+    async def run_sandboxed(
+        command: str, config: ContainerConfig | None = None
+    ) -> tuple[int, str, str]:
         """Run a command in an ephemeral container. Returns (exit_code, stdout, stderr)."""
         cfg = config or ContainerConfig()
         name = f"secagents-{uuid.uuid4().hex[:8]}"
 
         cmd = [
-            "docker", "run", "--rm", "--name", name,
-            "--memory", cfg.memory_limit,
+            "docker",
+            "run",
+            "--rm",
+            "--name",
+            name,
+            "--memory",
+            cfg.memory_limit,
             f"--cpus={cfg.cpu_limit}",
             f"--network={cfg.network}",
         ]
@@ -58,7 +65,13 @@ class DockerManager:
     @staticmethod
     async def build_image(dockerfile_path: str, tag: str = "secagents/sandbox:latest") -> bool:
         proc = await asyncio.create_subprocess_exec(
-            "docker", "build", "-t", tag, "-f", dockerfile_path, ".",
+            "docker",
+            "build",
+            "-t",
+            tag,
+            "-f",
+            dockerfile_path,
+            ".",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -68,7 +81,9 @@ class DockerManager:
     @staticmethod
     async def pull_image(image: str) -> bool:
         proc = await asyncio.create_subprocess_exec(
-            "docker", "pull", image,
+            "docker",
+            "pull",
+            image,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

@@ -17,10 +17,10 @@ RESET = "\033[0m"
 
 
 class KeyStatus(str, Enum):
-    VALID = "valid"       # 🟢 tested OK
-    PRESENT = "present"   # 🟡 found, not fully validated
-    MISSING = "missing"   # 🔴 absent
-    INVALID = "invalid"   # 🔴 tested failed
+    VALID = "valid"  # 🟢 tested OK
+    PRESENT = "present"  # 🟡 found, not fully validated
+    MISSING = "missing"  # 🔴 absent
+    INVALID = "invalid"  # 🔴 tested failed
 
 
 @dataclass

@@ -122,15 +122,15 @@ class DualMemory:
             async with self._lock:
                 # Only entries related to this agent
                 context["runtime"] = {
-                    k: v["value"] for k, v in self._runtime.items()
+                    k: v["value"]
+                    for k, v in self._runtime.items()
                     if agent in k or k.startswith("shared_")
                 }
         else:
             # Minimal: only shared runtime state
             async with self._lock:
                 context["runtime"] = {
-                    k: v["value"] for k, v in self._runtime.items()
-                    if k.startswith("shared_")
+                    k: v["value"] for k, v in self._runtime.items() if k.startswith("shared_")
                 }
         return context
 

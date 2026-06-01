@@ -15,64 +15,78 @@ from typing import List, Dict, Any
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn, TaskProgressColumn
-from rich.live import Live
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TimeElapsedColumn,
+    TaskProgressColumn,
+)
 from rich.text import Text
 from rich.theme import Theme
-from rich.logging import RichHandler
-from rich.columns import Columns
-from rich.box import ROUNDED, HEAVY_EDGE, DOUBLE_EDGE
-import logging
+from rich.box import ROUNDED, HEAVY_EDGE
 
 from secagents import __version__
-from secagents.operational.integrity import check_os_security_updates, check_and_apply_tool_update
+from secagents.operational.integrity import check_and_apply_tool_update
 from secagents.vault.env_loader import Vault
 from secagents.pipeline.runner import ScanPipeline
-from secagents.infra.preflight import run_preflight, preflight_ok
+from secagents.infra.preflight import run_preflight
 from secagents.infra.scope import enforce_scope, ScopeViolationError
 from secagents.agents.keyhacks import KeyhacksAgent
-from secagents.whichllm.hardware import detect_hardware, setup_ollama, recommend_local_model
+from secagents.whichllm.hardware import detect_hardware
 
 # ─── Aesthetic Configuration ────────────────────────────────────────────────
-custom_theme = Theme({
-    "info": "cyan",
-    "warning": "bold yellow",
-    "error": "bold red",
-    "success": "bold green",
-    "critical": "bold white on red",
-    "high": "bold red",
-    "medium": "bold yellow",
-    "low": "bold blue",
-    "hacker": "bold green",
-    "target": "bold magenta",
-    "dim": "grey50",
-})
+custom_theme = Theme(
+    {
+        "info": "bold #00ffff",
+        "warning": "bold #ffaa00",
+        "error": "bold #ff003c",
+        "success": "bold #00ff00",
+        "critical": "bold white on #ff003c",
+        "high": "bold #ff003c",
+        "medium": "bold #ffaa00",
+        "low": "bold #00ffff",
+        "hacker": "bold #00ff00",
+        "target": "bold #ff00ff",
+        "dim": "grey50",
+    }
+)
 
 console = Console(theme=custom_theme)
 
 # ─── ASCII ARSENAL ───────────────────────────────────────────────────────────
 BANNER = r"""
-    _____           ___                    __
-   / ___/___  _____/   | ____ ____  ____  / /______
-   \__ \/ _ \/ ___/ /| |/ __ `/ _ \/ __ \/ __/ ___/
-  ___/ /  __/ /__/ ___ / /_/ /  __/ / / / /_(__  )
- /____/\___/\___/_/  |_\__, /\___/_/ /_/_/   \___/
-                      /____/
+ [bold #00ff00]███████╗[/] [bold #00cc00]███████╗[/] [bold #009900]██████╗[/]  [bold #00ffff]█████╗[/]  [bold #00cccc]██████╗[/] [bold #009999]███████╗[/] [bold #006666]███╗   ██╗[/] [bold #003333]████████╗[/]
+ [bold #00ff00]██╔════╝[/] [bold #00cc00]██╔════╝[/] [bold #009900]██╔════╝[/] [bold #00ffff]██╔══██╗[/] [bold #00cccc]██╔════╝[/] [bold #009999]██╔════╝[/] [bold #006666]████╗  ██║[/] [bold #003333]╚══██╔══╝[/]
+ [bold #00ff00]███████╗[/] [bold #00cc00]█████╗  [/] [bold #009900]██║     [/] [bold #00ffff]███████║[/] [bold #00cccc]██║  ███╗[/] [bold #009999]█████╗  [/] [bold #006666]██╔██╗ ██║[/] [bold #003333]   ██║   [/]
+ [bold #00ff00]╚════██║[/] [bold #00cc00]██╔══╝  [/] [bold #009900]██║     [/] [bold #00ffff]██╔══██║[/] [bold #00cccc]██║   ██║[/] [bold #009999]██╔══╝  [/] [bold #006666]██║╚██╗██║[/] [bold #003333]   ██║   [/]
+ [bold #00ff00]███████║[/] [bold #00cc00]███████╗[/] [bold #009900]╚██████╗[/] [bold #00ffff]██║  ██║[/] [bold #00cccc]╚██████╔╝[/] [bold #009999]███████╗[/] [bold #006666]██║ ╚████║[/] [bold #003333]   ██║   [/]
+ [bold #00ff00]╚══════╝[/] [bold #00cc00]╚══════╝[/] [bold #009900] ╚═════╝[/] [bold #00ffff]╚═╝  ╚═╝[/] [bold #00cccc] ╚═════╝ [/] [bold #009999]╚══════╝[/] [bold #006666]╚═╝  ╚═══╝[/] [bold #003333]   ╚═╝   [/]
 """
 
+
 def print_banner():
-    banner_text = Text(BANNER, style="hacker")
-    subtext = Text(f"\n» AUTONOMOUS OFFENSIVE INTELLIGENCE FRAMEWORK «\n[ VERSION {__version__} | RED TEAM OPERATIONS ]\n", style="bold white")
-    console.print(Panel(Group(banner_text, subtext), border_style="hacker", box=HEAVY_EDGE, expand=False))
+    banner_text = Text.from_markup(BANNER)
+    subtext = Text.from_markup(
+        f"\n[bold white]» AUTONOMOUS OFFENSIVE INTELLIGENCE FRAMEWORK «[/]\n[dim]VERSION {__version__} | RED TEAM OPERATIONS[/]\n"
+    )
+    console.print(
+        Panel(Group(banner_text, subtext), border_style="#00ff00", box=DOUBLE_EDGE, expand=False, padding=(1, 2))
+    )
+
 
 # ─── Core Logic ─────────────────────────────────────────────────────────────
+
 
 def _load_env() -> None:
     try:
         from dotenv import load_dotenv
+
         load_dotenv()
     except ImportError:
         Vault(Path(".env")).load()
+
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -94,16 +108,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Scan intensity and depth",
     )
     scan.add_argument("--workers", "-w", type=int, default=4, help="Parallel agent swarm size")
-    scan.add_argument("--skip-os-check", action="store_true", help="Bypass OS security baseline check")
+    scan.add_argument(
+        "--skip-os-check", action="store_true", help="Bypass OS security baseline check"
+    )
     scan.add_argument("--no-sandbox", action="store_true", help="Bypass Docker Fortress isolation")
     scan.add_argument("--no-arsenal", action="store_true", help="Skip heuristic Arsenal probes")
     scan.add_argument("--insecure", action="store_true", help="Bypass SSL/TLS verification")
-    scan.add_argument("--setup-local-llm", action="store_true", help="Auto-provision local Ollama model")
+    scan.add_argument(
+        "--setup-local-llm", action="store_true", help="Auto-provision local Ollama model"
+    )
     scan.add_argument("--results-dir", default="cog-ai-results", help="Breach report directory")
 
     # Vault Command
     vault = sub.add_parser("vault", help="Interface with secret storage and API keys")
-    vault.add_argument("--validate", action="store_true", help="Probe key validity via live API calls")
+    vault.add_argument(
+        "--validate", action="store_true", help="Probe key validity via live API calls"
+    )
     vault.add_argument("--env", default=".env", help="Path to operational manifest")
 
     # Keyhacks Command
@@ -119,6 +139,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     return p
 
+
 async def cmd_scan(args: argparse.Namespace) -> int:
     if args.insecure:
         os.environ["SECAGENT_VERIFY_SSL"] = "false"
@@ -129,7 +150,9 @@ async def cmd_scan(args: argparse.Namespace) -> int:
         console.print(f"[error]⛔ Scope Violation:[/error] {e}")
         return 2
 
-    console.print(f"\n[bold magenta]󰋼[/bold magenta] [bold white]INITIATING OPERATION:[/bold white] [target]{args.target}[/target]")
+    console.print(
+        f"\n[bold magenta]󰋼[/bold magenta] [bold white]INITIATING OPERATION:[/bold white] [target]{args.target}[/target]"
+    )
     console.print(f"[dim]Parameters: depth={args.depth}, workers={args.workers}[/dim]\n")
 
     pipeline = ScanPipeline(
@@ -152,7 +175,9 @@ async def cmd_scan(args: argparse.Namespace) -> int:
             TimeElapsedColumn(),
             console=console,
         ) as progress:
-            task = progress.add_task(description=f"Orchestrating agents against {domain}...", total=None)
+            task = progress.add_task(
+                description=f"Orchestrating agents against {domain}...", total=None
+            )
             results = await pipeline.run()
             progress.update(task, completed=100)
     except Exception as e:
@@ -160,9 +185,15 @@ async def cmd_scan(args: argparse.Namespace) -> int:
         return 2
 
     findings: List[Dict[str, Any]] = results.get("findings", [])
-    
+
     # Intelligence Summary
-    table = Table(title="[bold white]MISSION INTELLIGENCE SUMMARY[/bold white]", show_header=True, header_style="bold cyan", box=ROUNDED, expand=True)
+    table = Table(
+        title="[bold white]MISSION INTELLIGENCE SUMMARY[/bold white]",
+        show_header=True,
+        header_style="bold cyan",
+        box=ROUNDED,
+        expand=True,
+    )
     table.add_column("SEVERITY", justify="center", width=12)
     table.add_column("VULNERABILITY", justify="left")
     table.add_column("TARGET ENDPOINT", justify="left")
@@ -174,30 +205,45 @@ async def cmd_scan(args: argparse.Namespace) -> int:
             f"[{sev}]{sev.upper()}[/{sev}]",
             f.get("title", f.get("type", "Unknown")),
             f.get("url", f.get("endpoint", "N/A")),
-            f"{int(float(f.get('confidence', 0))*100)}%"
+            f"{int(float(f.get('confidence', 0)) * 100)}%",
         )
 
     console.print("\n")
     if findings:
         console.print(table)
-        
+
         # Attack Chain visualization hint
         if results.get("chains"):
-            console.print(Panel(f"[bold yellow]⛓️ Attack Chains Detected:[/bold yellow] Found {len(results['chains'])} correlated exploit path(s).", border_style="yellow"))
+            console.print(
+                Panel(
+                    f"[bold yellow]⛓️ Attack Chains Detected:[/bold yellow] Found {len(results['chains'])} correlated exploit path(s).",
+                    border_style="yellow",
+                )
+            )
     else:
-        console.print(Panel("[success]✓ No vulnerabilities detected in target scope.[/success]", border_style="success"))
+        console.print(
+            Panel(
+                "[success]✓ No vulnerabilities detected in target scope.[/success]",
+                border_style="success",
+            )
+        )
 
-    console.print(f"\n[success]✅ OPERATION COMPLETE[/success] — {len(findings)} Validated Signal(s) Extracted.")
-    
+    console.print(
+        f"\n[success]✅ OPERATION COMPLETE[/success] — {len(findings)} Validated Signal(s) Extracted."
+    )
+
     if results.get("reports"):
         r_table = Table(box=None, padding=(0, 2))
         r_table.add_column("FORMAT", style="bold white")
         r_table.add_column("BREACH REPORT PATH", style="blue underline")
         for fmt, path in results["reports"].items():
             r_table.add_row(fmt.upper(), str(path))
-        console.print(Panel(r_table, title="[bold white]DELIVERABLES[/bold white]", border_style="cyan"))
-    
+        console.print(
+            Panel(r_table, title="[bold white]DELIVERABLES[/bold white]", border_style="cyan")
+        )
+
     return 0
+
 
 async def cmd_vault(args: argparse.Namespace) -> int:
     v = Vault(env_path=Path(args.env))
@@ -207,27 +253,48 @@ async def cmd_vault(args: argparse.Namespace) -> int:
     else:
         v.load()
         from secagents.vault.env_loader import KeyReport, KeyStatus, mask_secret
+
         v.reports = []
-        for name in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GROQ_API_KEY", "DEEPSEEK_API_KEY", "LLM_API_KEYS"):
+        for name in (
+            "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "GROQ_API_KEY",
+            "DEEPSEEK_API_KEY",
+            "LLM_API_KEYS",
+        ):
             val = os.environ.get(name, "")
             status = KeyStatus.PRESENT if val else KeyStatus.MISSING
             v.reports.append(KeyReport(name, status, mask_secret(val) if val else ""))
-    
+
     # Enhanced Vault Table
-    table = Table(title="[bold white]OPERATIONAL MANIFEST STATUS[/bold white]", box=ROUNDED, expand=True)
+    table = Table(
+        title="[bold white]OPERATIONAL MANIFEST STATUS[/bold white]", box=ROUNDED, expand=True
+    )
     table.add_column("SERVICE", style="cyan")
     table.add_column("STATUS", justify="center")
     table.add_column("FRAGMENT", style="dim")
 
     from secagents.vault.env_loader import KeyStatus
+
     for r in v.reports:
-        status_text = "[green]ACTIVE[/green]" if r.status == KeyStatus.VALID else \
-                      ("[red]MISSING[/red]" if r.status == KeyStatus.MISSING else \
-                       ("[yellow]REVOKED[/yellow]" if r.status == KeyStatus.INVALID else "[blue]PRESENT[/blue]"))
+        status_text = (
+            "[green]ACTIVE[/green]"
+            if r.status == KeyStatus.VALID
+            else (
+                "[red]MISSING[/red]"
+                if r.status == KeyStatus.MISSING
+                else (
+                    "[yellow]REVOKED[/yellow]"
+                    if r.status == KeyStatus.INVALID
+                    else "[blue]PRESENT[/blue]"
+                )
+            )
+        )
         table.add_row(r.name, status_text, r.masked_value)
 
     console.print(table)
     return 0
+
 
 async def cmd_keyhacks(args: argparse.Namespace) -> int:
     agent = KeyhacksAgent(requests_per_minute=args.rate_limit)
@@ -235,10 +302,15 @@ async def cmd_keyhacks(args: argparse.Namespace) -> int:
     for p in args.paths:
         path = Path(p)
         if path.is_dir():
-            paths.extend(str(f) for f in path.rglob("*") if f.is_file() and not any(part in f.parts for part in (".git", ".venv", "node_modules")))
+            paths.extend(
+                str(f)
+                for f in path.rglob("*")
+                if f.is_file()
+                and not any(part in f.parts for part in (".git", ".venv", "node_modules"))
+            )
         elif path.is_file():
             paths.append(str(path))
-    
+
     if not paths:
         console.print("[warning]⚠ No assets found for auditing.[/warning]")
         return 0
@@ -246,7 +318,7 @@ async def cmd_keyhacks(args: argparse.Namespace) -> int:
     console.print(f"[info]󰋼[/info] Auditing {len(paths)} assets for leaked secrets...")
     with console.status("[bold yellow]Scanning assets..."):
         findings = await agent.scan_paths(paths[:1000])
-    
+
     table = Table(title="LEAKED CREDENTIAL AUDIT", box=ROUNDED, expand=True)
     table.add_column("STATUS", justify="center", width=12)
     table.add_column("SERVICE")
@@ -254,14 +326,24 @@ async def cmd_keyhacks(args: argparse.Namespace) -> int:
     table.add_column("SOURCE ASSET", style="dim")
 
     for f in findings:
-        status = "[green]LIVE[/green]" if f.valid else ("[red]DEAD[/red]" if f.valid is False else "[yellow]UNKNOWN[/yellow]")
+        status = (
+            "[green]LIVE[/green]"
+            if f.valid
+            else ("[red]DEAD[/red]" if f.valid is False else "[yellow]UNKNOWN[/yellow]")
+        )
         table.add_row(status, f.service, f.key_masked, f.source)
 
     if findings:
         console.print(table)
     else:
-        console.print(Panel("[success]✓ No leaked keys detected in local assets.[/success]", border_style="success"))
+        console.print(
+            Panel(
+                "[success]✓ No leaked keys detected in local assets.[/success]",
+                border_style="success",
+            )
+        )
     return 0
+
 
 def main() -> None:
     _load_env()
@@ -278,6 +360,7 @@ def main() -> None:
             sys.exit(asyncio.run(cmd_keyhacks(args)))
         elif args.command == "worker":
             from secagents.worker.runner import main as worker_main
+
             worker_main()
         elif args.command == "preflight":
             results = run_preflight()
@@ -285,7 +368,10 @@ def main() -> None:
             table.add_column("CHECK")
             table.add_column("RESULT")
             for r in results:
-                table.add_row(r.name, f"{'[green]PASS[/green]' if r.passed else '[red]FAIL[/red]'} — {r.message}")
+                table.add_row(
+                    r.name,
+                    f"{'[green]PASS[/green]' if r.passed else '[red]FAIL[/red]'} — {r.message}",
+                )
             console.print(table)
         elif args.command == "update":
             with console.status("[bold magenta]Checking for framework updates..."):
@@ -293,10 +379,17 @@ def main() -> None:
             console.print(Panel(msg, title="UPDATE STATUS", border_style="magenta"))
         elif args.command == "hardware":
             profile = detect_hardware()
-            console.print(Panel(f"Hardware Summary: {profile.summary()}", title="HARDWARE INTELLIGENCE", border_style="cyan"))
+            console.print(
+                Panel(
+                    f"Hardware Summary: {profile.summary()}",
+                    title="HARDWARE INTELLIGENCE",
+                    border_style="cyan",
+                )
+            )
     except KeyboardInterrupt:
         console.print("\n[warning]⚠ Mission aborted by operator.[/warning]")
         sys.exit(130)
+
 
 if __name__ == "__main__":
     main()

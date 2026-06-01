@@ -46,7 +46,9 @@ async def get_finding(
 ):
     user_targets = select(Target.id).where(Target.created_by == current_user.id)
     result = await db.execute(
-        select(Finding).where(Finding.id == finding_id, Finding.target_id.in_(user_targets))
+        select(Finding).where(
+            Finding.id == finding_id, Finding.target_id.in_(user_targets)
+        )
     )
     finding = result.scalar_one_or_none()
     if not finding:

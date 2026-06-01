@@ -5,12 +5,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -33,6 +31,7 @@ class AgentRole(str, Enum):
 
 class AgentOutput(BaseModel):
     """Structured output from any agent."""
+
     agent: str
     role: AgentRole
     result: Any
@@ -101,18 +100,17 @@ class BaseAgent(ABC):
         """Execute agent with full lifecycle (no retry)."""
         # Mandatory notification per SKILL.md rules
         await skill_manager.notify_invocation(self.name, task.get("action", "execute"))
-        
+
         self.logger.info(f"Starting execution: {task}")
         start_time = time.time()
-        
+
         try:
-            output = await asyncio.wait_for(
-                self.execute(task),
-                timeout=self.config.timeout_seconds
-            )
+            output = await asyncio.wait_for(self.execute(task), timeout=self.config.timeout_seconds)
             execution_time = (time.time() - start_time) * 1000
             output.execution_time_ms = execution_time
-            self.logger.info(f"Execution completed in {execution_time:.2f}ms with confidence {output.confidence}")
+            self.logger.info(
+                f"Execution completed in {execution_time:.2f}ms with confidence {output.confidence}"
+            )
             return output
         except asyncio.TimeoutError:
             execution_time = (time.time() - start_time) * 1000
@@ -151,26 +149,28 @@ class BaseAgent(ABC):
             try:
                 self.logger.info(f"Attempt {attempt + 1}/{policy.max_retries + 1}")
                 output = await self.run(task)
-                
+
                 if output.error is None:
                     self.logger.info(f"Success on attempt {attempt + 1}")
                     return output
-                
+
                 last_output = output
                 if attempt < policy.max_retries:
-                    delay = policy.initial_delay * (policy.backoff_factor ** attempt)
+                    delay = policy.initial_delay * (policy.backoff_factor**attempt)
                     self.logger.warning(f"Attempt {attempt + 1} failed, retrying in {delay}s")
                     await asyncio.sleep(delay)
             except Exception as e:
                 last_error = e
                 if attempt < policy.max_retries:
-                    delay = policy.initial_delay * (policy.backoff_factor ** attempt)
-                    self.logger.warning(f"Exception on attempt {attempt + 1}: {str(e)}, retrying in {delay}s")
+                    delay = policy.initial_delay * (policy.backoff_factor**attempt)
+                    self.logger.warning(
+                        f"Exception on attempt {attempt + 1}: {str(e)}, retrying in {delay}s"
+                    )
                     await asyncio.sleep(delay)
 
         if last_output and last_output.error:
             return last_output
-        
+
         error_msg = str(last_error) if last_error else "Unknown error after all retries"
         self.logger.error(f"Failed after {policy.max_retries + 1} attempts: {error_msg}")
         return AgentOutput(
@@ -193,7 +193,7 @@ class BaseAgent(ABC):
         if confidence < 0.0 or confidence > 1.0:
             self.logger.warning(f"Confidence {confidence} out of range, clamping to [0, 1]")
             confidence = max(0.0, min(1.0, confidence))
-        
+
         return AgentOutput(
             agent=self.name,
             role=self.role,

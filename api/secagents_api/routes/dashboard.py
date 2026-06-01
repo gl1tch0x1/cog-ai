@@ -37,7 +37,8 @@ async def get_dashboard_stats(
     )
     valid_f = await db.execute(
         select(func.count(Finding.id)).where(
-            Finding.target_id.in_(user_targets), Finding.validated == True  # noqa: E712
+            Finding.target_id.in_(user_targets),
+            Finding.validated == True,  # noqa: E712
         )
     )
     targets = await db.execute(

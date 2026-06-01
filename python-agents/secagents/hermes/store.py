@@ -53,7 +53,9 @@ class HermesMemory:
     def log_success(self, target: str, exploit_type: str, details: dict) -> int:
         return self._insert("exploit_success", target, {"type": exploit_type, **details})
 
-    def log_failure(self, target: str, exploit_type: str, reason: str, details: dict | None = None) -> int:
+    def log_failure(
+        self, target: str, exploit_type: str, reason: str, details: dict | None = None
+    ) -> int:
         return self._insert(
             "exploit_failure",
             target,
@@ -79,7 +81,9 @@ class HermesMemory:
 
     def get_skills(self) -> list[dict]:
         with self._conn() as conn:
-            rows = conn.execute("SELECT name, language, source FROM skills ORDER BY created_at DESC").fetchall()
+            rows = conn.execute(
+                "SELECT name, language, source FROM skills ORDER BY created_at DESC"
+            ).fetchall()
         return [dict(r) for r in rows]
 
     def query_similar_failures(self, exploit_type: str, limit: int = 5) -> list[dict]:
@@ -96,7 +100,9 @@ class HermesMemory:
         with self._conn() as conn:
             memories = [
                 dict(r)
-                for r in conn.execute("SELECT kind, target, payload, created_at FROM memories").fetchall()
+                for r in conn.execute(
+                    "SELECT kind, target, payload, created_at FROM memories"
+                ).fetchall()
             ]
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"memories": memories}, indent=2))

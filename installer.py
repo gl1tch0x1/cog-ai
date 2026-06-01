@@ -48,13 +48,13 @@ from rich.box import ROUNDED, HEAVY
 
 # ─── Aesthetic Configuration ────────────────────────────────────────────────
 custom_theme = Theme({
-    "info": "cyan",
-    "warning": "bold yellow",
-    "error": "bold red",
-    "success": "bold green",
-    "phase": "bold magenta",
-    "hacker": "bold green",
-    "highlight": "bold white on blue",
+    "info": "bold #00ffff",
+    "warning": "bold #ffaa00",
+    "error": "bold #ff003c",
+    "success": "bold #00ff00",
+    "phase": "bold #ff00ff",
+    "hacker": "bold #00ff00",
+    "highlight": "bold white on #0066ff",
     "dim": "grey50",
 })
 
@@ -76,21 +76,21 @@ UVICORN_EXEC = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("uvicorn.exe" 
 # ─── UI Components ───────────────────────────────────────────────────────────
 
 BANNER = r"""
-    _____           ___                    __
-   / ___/___  _____/   | ____ ____  ____  / /______
-   \__ \/ _ \/ ___/ /| |/ __ `/ _ \/ __ \/ __/ ___/
-  ___/ /  __/ /__/ ___ / /_/ /  __/ / / / /_(__  )
- /____/\___/\___/_/  |_\__, /\___/_/ /_/_/   \___/
-                      /____/
+ [bold #00ff00]███████╗[/] [bold #00cc00]███████╗[/] [bold #009900]██████╗[/]  [bold #00ffff]█████╗[/]  [bold #00cccc]██████╗[/] [bold #009999]███████╗[/] [bold #006666]███╗   ██╗[/] [bold #003333]████████╗[/]
+ [bold #00ff00]██╔════╝[/] [bold #00cc00]██╔════╝[/] [bold #009900]██╔════╝[/] [bold #00ffff]██╔══██╗[/] [bold #00cccc]██╔════╝[/] [bold #009999]██╔════╝[/] [bold #006666]████╗  ██║[/] [bold #003333]╚══██╔══╝[/]
+ [bold #00ff00]███████╗[/] [bold #00cc00]█████╗  [/] [bold #009900]██║     [/] [bold #00ffff]███████║[/] [bold #00cccc]██║  ███╗[/] [bold #009999]█████╗  [/] [bold #006666]██╔██╗ ██║[/] [bold #003333]   ██║   [/]
+ [bold #00ff00]╚════██║[/] [bold #00cc00]██╔══╝  [/] [bold #009900]██║     [/] [bold #00ffff]██╔══██║[/] [bold #00cccc]██║   ██║[/] [bold #009999]██╔══╝  [/] [bold #006666]██║╚██╗██║[/] [bold #003333]   ██║   [/]
+ [bold #00ff00]███████║[/] [bold #00cc00]███████╗[/] [bold #009900]╚██████╗[/] [bold #00ffff]██║  ██║[/] [bold #00cccc]╚██████╔╝[/] [bold #009999]███████╗[/] [bold #006666]██║ ╚████║[/] [bold #003333]   ██║   [/]
+ [bold #00ff00]╚══════╝[/] [bold #00cc00]╚══════╝[/] [bold #009900] ╚═════╝[/] [bold #00ffff]╚═╝  ╚═╝[/] [bold #00cccc] ╚═════╝ [/] [bold #009999]╚══════╝[/] [bold #006666]╚═╝  ╚═══╝[/] [bold #003333]   ╚═╝   [/]
 """
 
 def get_header():
     grid = Table.grid(expand=True)
     grid.add_column(justify="center", ratio=1)
-    grid.add_row(Text(BANNER, style="hacker"))
-    grid.add_row(Text("» AUTONOMOUS OFFENSIVE INTELLIGENCE FRAMEWORK «", style="bold white"))
-    grid.add_row(Text(f"[ V0.3.0-DEV | ELITE DEPLOYMENT ENGINE ]", style="dim"))
-    return Panel(grid, style="hacker", box=HEAVY)
+    grid.add_row(Text.from_markup(BANNER))
+    grid.add_row(Text.from_markup("[bold white]» AUTONOMOUS OFFENSIVE INTELLIGENCE FRAMEWORK «[/]"))
+    grid.add_row(Text.from_markup("[dim][ V0.3.0-DEV | ELITE DEPLOYMENT ENGINE ][/]"))
+    return Panel(grid, border_style="#00ff00", box=HEAVY, padding=(1, 2))
 
 class DeploymentUI:
     def __init__(self):

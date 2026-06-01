@@ -94,7 +94,9 @@ class KeyhacksAgent:
 
         if service == "aws":
             return KeyFinding(
-                service, masked, None,
+                service,
+                masked,
+                None,
                 "AWS access key pattern detected — manual secret validation required",
                 "",
             )
@@ -111,7 +113,9 @@ class KeyhacksAgent:
 
                 valid = resp.status_code == 200
                 return KeyFinding(
-                    service, masked, valid,
+                    service,
+                    masked,
+                    valid,
                     f"HTTP {resp.status_code}" if not valid else "Key appears active",
                     "",
                 )

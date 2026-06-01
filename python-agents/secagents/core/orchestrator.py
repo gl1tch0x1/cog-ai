@@ -57,7 +57,8 @@ class ExecutionGraph:
         """Tasks whose dependencies are all DONE."""
         done_ids = {t.id for t in self.tasks if t.state == TaskState.DONE}
         return [
-            t for t in self.tasks
+            t
+            for t in self.tasks
             if t.state == TaskState.PENDING and all(d in done_ids for d in t.depends_on)
         ]
 
@@ -69,6 +70,7 @@ class ExecutionGraph:
 @dataclass
 class RetryConfig:
     """Configuration for task retry logic."""
+
     max_retries: int = 3
     initial_backoff: float = 1.0
     max_backoff: float = 30.0
@@ -78,16 +80,17 @@ class RetryConfig:
 @dataclass
 class CircuitBreakerState:
     """State tracker for circuit breaker pattern."""
+
     failures: int = 0
     last_failure_time: float = 0.0
     open_until: float = 0.0
     consecutive_successes: int = 0
-    
+
     @property
     def is_open(self) -> bool:
         """Check if circuit is in open state (rejecting calls)."""
         return time.time() < self.open_until
-    
+
     def record_failure(self) -> None:
         """Record a failure and update circuit state."""
         self.failures += 1
@@ -96,7 +99,7 @@ class CircuitBreakerState:
         # Trip circuit after 5 consecutive failures
         if self.failures >= 5:
             self.open_until = time.time() + 60.0  # 60 second cooldown
-    
+
     def record_success(self) -> None:
         """Record a success and potentially close circuit."""
         self.consecutive_successes += 1
@@ -113,7 +116,7 @@ class Orchestrator:
     def __init__(self, retry_config: Optional[RetryConfig] = None):
         """
         Initialize the Orchestrator.
-        
+
         Args:
             retry_config: Configuration for retry behavior. Defaults to RetryConfig().
         """
@@ -126,7 +129,7 @@ class Orchestrator:
     def register_agent(self, name: str, executor: Callable) -> None:
         """
         Register an agent executor by name.
-        
+
         Args:
             name: Unique identifier for the agent.
             executor: Callable that executes the agent (async or sync).
@@ -136,7 +139,7 @@ class Orchestrator:
     def on_event(self, event_type: str, handler: Callable) -> None:
         """
         Register an event handler for orchestration events.
-        
+
         Args:
             event_type: Type of event (e.g., 'task_started', 'task_completed').
             handler: Callable to invoke when event fires (async or sync).
@@ -146,7 +149,7 @@ class Orchestrator:
     async def _emit(self, event_type: str, data: dict) -> None:
         """
         Emit an event to all registered handlers.
-        
+
         Args:
             event_type: Type of event to emit.
             data: Event payload dictionary.
@@ -159,21 +162,31 @@ class Orchestrator:
                     handler(data)
             except Exception:
                 pass
+
     def classify_intent(self, request: str) -> Intent:
         """
         Fast intent classification without LLM call.
-        
+
         Args:
             request: User request string to classify.
-            
+
         Returns:
             Classified Intent enum value.
         """
         r = request.lower()
-        if any(w in r for w in ["ai safety", "repo poisoning", "assistant config", "cursorrules", "prompt injection"]):
+        if any(
+            w in r
+            for w in [
+                "ai safety",
+                "repo poisoning",
+                "assistant config",
+                "cursorrules",
+                "prompt injection",
+            ]
+        ):
             return Intent.AI_SAFETY
         if any(w in r for w in ["bug bounty", "bounty hunter", "h1", "bugcrowd"]):
-            return Intent.SCAN # Map to scan for now, but with bug bounty context
+            return Intent.SCAN  # Map to scan for now, but with bug bounty context
         if any(w in r for w in ["web assessment", "pentest", "security audit"]):
             return Intent.SCAN
         if any(w in r for w in ["plan", "decompose", "strategy"]):
@@ -191,14 +204,14 @@ class Orchestrator:
     def decompose_intent(self, intent: Intent, context: dict) -> ExecutionGraph:
         """
         Break complex intents into minimal execution graphs.
-        
+
         This method decomposes a high-level intent into a set of tasks
         with explicit dependencies, forming a directed acyclic graph (DAG).
-        
+
         Args:
             intent: The Intent to decompose.
             context: Context dictionary containing parameters like 'target', 'request', etc.
-            
+
         Returns:
             ExecutionGraph with tasks ordered by dependencies.
         """
@@ -214,7 +227,7 @@ class Orchestrator:
                 input={"target": target},
                 model_hint="fast",
                 tools=["subfinder", "httpx", "katana"],
-                memory_scope="runtime"
+                memory_scope="runtime",
             )
             # Phase 2: Universal Meta-Scan (depends on recon)
             scan = Task(
@@ -225,7 +238,7 @@ class Orchestrator:
                 depends_on=[recon.id],
                 model_hint="balanced",
                 tools=["universal_analyzer"],
-                memory_scope="runtime"
+                memory_scope="runtime",
             )
             # Phase 3: Validation (depends on scan)
             validate = Task(
@@ -236,7 +249,7 @@ class Orchestrator:
                 depends_on=[scan.id],
                 model_hint="reasoning",
                 tools=["http_request", "poc_generate"],
-                memory_scope="runtime"
+                memory_scope="runtime",
             )
             # Phase 4: Report generation (depends on validation)
             report = Task(
@@ -247,7 +260,7 @@ class Orchestrator:
                 depends_on=[validate.id],
                 model_hint="fast",
                 tools=["report_generate"],
-                memory_scope="persistent"
+                memory_scope="persistent",
             )
             graph.tasks = [recon, scan, validate, report]
 
@@ -257,7 +270,7 @@ class Orchestrator:
                     agent="security_orchestrator",
                     action="ai_safety_audit",
                     input=context,
-                    model_hint="reasoning"
+                    model_hint="reasoning",
                 )
             ]
 
@@ -269,7 +282,7 @@ class Orchestrator:
                     action="full_recon",
                     input={"target": target},
                     model_hint="fast",
-                    tools=["subfinder", "httpx", "katana", "waybackurls"]
+                    tools=["subfinder", "httpx", "katana", "waybackurls"],
                 )
             ]
 
@@ -280,7 +293,7 @@ class Orchestrator:
                     action="validate",
                     input=context,
                     model_hint="reasoning",
-                    tools=["http_request", "sandbox_exec", "poc_generate"]
+                    tools=["http_request", "sandbox_exec", "poc_generate"],
                 )
             ]
 
@@ -291,7 +304,7 @@ class Orchestrator:
                     action="generate",
                     input=context,
                     model_hint="fast",
-                    tools=["report_generate"]
+                    tools=["report_generate"],
                 )
             ]
 
@@ -302,17 +315,12 @@ class Orchestrator:
                     action="plan",
                     input=context,
                     model_hint="reasoning",
-                    memory_scope="persistent"
+                    memory_scope="persistent",
                 )
             ]
         else:
             graph.tasks = [
-                Task(
-                    agent="supervisor",
-                    action="query",
-                    input=context,
-                    model_hint="fast"
-                )
+                Task(agent="supervisor", action="query", input=context, model_hint="fast")
             ]
 
         return graph
@@ -320,11 +328,11 @@ class Orchestrator:
     def decompose(self, intent: Intent, context: dict) -> ExecutionGraph:
         """
         Deprecated alias for decompose_intent. Use decompose_intent instead.
-        
+
         Args:
             intent: The Intent to decompose.
             context: Context dictionary.
-            
+
         Returns:
             ExecutionGraph with decomposed tasks.
         """
@@ -333,53 +341,52 @@ class Orchestrator:
     async def route_task(self, task: Task) -> Callable:
         """
         Route a task to the appropriate agent based on intent and agent name.
-        
+
         This method selects the best agent executor for a given task,
         considering model hints, available tools, and circuit breaker state.
-        
+
         Args:
             task: Task to route.
-            
+
         Returns:
             Callable executor for the task.
-            
+
         Raises:
             ValueError: If no suitable agent executor found.
         """
         agent_name = task.agent
-        
+
         # Check circuit breaker state
         if self._circuit_breakers[agent_name].is_open:
-            await self._emit("circuit_open", {
-                "agent": agent_name,
-                "task_id": task.id,
-                "reason": "Circuit breaker is open"
-            })
+            await self._emit(
+                "circuit_open",
+                {"agent": agent_name, "task_id": task.id, "reason": "Circuit breaker is open"},
+            )
             raise RuntimeError(f"Agent '{agent_name}' circuit breaker is open")
-        
+
         executor = self._agents.get(agent_name)
         if not executor:
             raise ValueError(f"No agent registered for '{agent_name}'")
-        
+
         return executor
 
     async def aggregate_results(self, graph: ExecutionGraph) -> dict:
         """
         Collect and merge results from all completed tasks.
-        
+
         This method aggregates results from the execution graph into
         a unified output dictionary, handling errors and maintaining
         result ordering by task dependencies.
-        
+
         Args:
             graph: Completed ExecutionGraph.
-            
+
         Returns:
             Dictionary with aggregated results keyed by agent names.
         """
         aggregated = {}
         errors = []
-        
+
         for task in graph.tasks:
             if task.state == TaskState.DONE and task.output:
                 # Store successful result
@@ -391,23 +398,25 @@ class Orchestrator:
                     aggregated[key].append(task.output)
                 else:
                     aggregated[key] = task.output
-                    
+
             elif task.state == TaskState.FAILED:
-                errors.append({
-                    "task_id": task.id,
-                    "agent": task.agent,
-                    "error": task.output or {"error": "Unknown failure"}
-                })
-        
+                errors.append(
+                    {
+                        "task_id": task.id,
+                        "agent": task.agent,
+                        "error": task.output or {"error": "Unknown failure"},
+                    }
+                )
+
         # Add metadata
         aggregated["_metadata"] = {
             "total_tasks": len(graph.tasks),
             "completed": sum(1 for t in graph.tasks if t.state == TaskState.DONE),
             "failed": sum(1 for t in graph.tasks if t.state == TaskState.FAILED),
             "errors": errors,
-            "root_intent": graph.root_intent.value
+            "root_intent": graph.root_intent.value,
         }
-        
+
         return aggregated
 
     async def handle_task_failure(
@@ -415,51 +424,56 @@ class Orchestrator:
     ) -> bool:
         """
         Handle task failure with retry logic and circuit breaker.
-        
+
         This method implements exponential backoff retry logic and
         circuit breaker pattern to gracefully degrade under failure.
-        
+
         Args:
             task: Failed task.
             graph: Execution graph context.
             exception: Exception that caused failure.
-            
+
         Returns:
             True if task should be retried, False if permanent failure.
         """
         agent_name = task.agent
         cb = self._circuit_breakers[agent_name]
-        
+
         # Record failure in circuit breaker
         cb.record_failure()
-        
+
         # Check if we should retry
         retry_count = task.input.get("_retry_count", 0)
         if retry_count >= self._retry_config.max_retries:
-            await self._emit("task_permanent_failure", {
-                "task_id": task.id,
-                "agent": agent_name,
-                "error": str(exception),
-                "retries_exhausted": retry_count
-            })
+            await self._emit(
+                "task_permanent_failure",
+                {
+                    "task_id": task.id,
+                    "agent": agent_name,
+                    "error": str(exception),
+                    "retries_exhausted": retry_count,
+                },
+            )
             return False
-        
+
         # Calculate backoff
         backoff = min(
-            self._retry_config.initial_backoff * (
-                self._retry_config.backoff_multiplier ** retry_count
-            ),
-            self._retry_config.max_backoff
+            self._retry_config.initial_backoff
+            * (self._retry_config.backoff_multiplier**retry_count),
+            self._retry_config.max_backoff,
         )
-        
-        await self._emit("task_retry", {
-            "task_id": task.id,
-            "agent": agent_name,
-            "attempt": retry_count + 1,
-            "backoff_seconds": backoff,
-            "error": str(exception)
-        })
-        
+
+        await self._emit(
+            "task_retry",
+            {
+                "task_id": task.id,
+                "agent": agent_name,
+                "attempt": retry_count + 1,
+                "backoff_seconds": backoff,
+                "error": str(exception),
+            },
+        )
+
         # Schedule retry
         await asyncio.sleep(backoff)
         task.input["_retry_count"] = retry_count + 1
@@ -469,38 +483,42 @@ class Orchestrator:
     async def execute_graph(self, graph: ExecutionGraph, timeout_seconds: float = 300.0) -> dict:
         """
         Execute all tasks in the graph respecting dependencies.
-        
+
         This method orchestrates execution of all tasks in the graph,
         ensuring dependencies are satisfied, handling retries, and
         aggregating results.
-        
+
         Args:
             graph: ExecutionGraph to execute.
             timeout_seconds: Maximum time to execute (default 300s = 5 min).
-            
+
         Returns:
             Dictionary with aggregated results from all tasks.
         """
         deadline = time.time() + timeout_seconds
         execution_start = time.time()
-        
+
         while not graph.is_complete:
             # Check timeout
             if time.time() > deadline:
-                await self._emit("execution_timeout", {
-                    "timeout_seconds": timeout_seconds,
-                    "tasks_remaining": sum(
-                        1 for t in graph.tasks
-                        if t.state not in (TaskState.DONE, TaskState.FAILED)
-                    )
-                })
+                await self._emit(
+                    "execution_timeout",
+                    {
+                        "timeout_seconds": timeout_seconds,
+                        "tasks_remaining": sum(
+                            1
+                            for t in graph.tasks
+                            if t.state not in (TaskState.DONE, TaskState.FAILED)
+                        ),
+                    },
+                )
                 # Mark running tasks as failed
                 for task in graph.tasks:
                     if task.state == TaskState.RUNNING:
                         task.state = TaskState.FAILED
                         task.output = {"error": "Execution timeout"}
                 break
-            
+
             # Get ready tasks (dependencies satisfied)
             ready = graph.ready_tasks
             if not ready:
@@ -508,42 +526,43 @@ class Orchestrator:
                 # Wait briefly before checking again
                 await asyncio.sleep(0.05)
                 continue
-            
+
             # Execute all ready tasks in parallel
             coros = [self._execute_task(task, graph) for task in ready]
             await asyncio.gather(*coros)
-        
+
         # Emit completion event
         duration_ms = (time.time() - execution_start) * 1000
-        await self._emit("graph_execution_complete", {
-            "duration_ms": round(duration_ms, 1),
-            "total_tasks": len(graph.tasks),
-            "completed_tasks": sum(1 for t in graph.tasks if t.state == TaskState.DONE),
-            "failed_tasks": sum(1 for t in graph.tasks if t.state == TaskState.FAILED)
-        })
-        
+        await self._emit(
+            "graph_execution_complete",
+            {
+                "duration_ms": round(duration_ms, 1),
+                "total_tasks": len(graph.tasks),
+                "completed_tasks": sum(1 for t in graph.tasks if t.state == TaskState.DONE),
+                "failed_tasks": sum(1 for t in graph.tasks if t.state == TaskState.FAILED),
+            },
+        )
+
         # Aggregate and return results
         return await self.aggregate_results(graph)
 
     async def _execute_task(self, task: Task, graph: ExecutionGraph) -> None:
         """
         Execute a single task with retry and error handling.
-        
+
         Args:
             task: Task to execute.
             graph: Execution graph context.
         """
         task.state = TaskState.RUNNING
-        await self._emit("task_started", {
-            "task_id": task.id,
-            "agent": task.agent,
-            "action": task.action
-        })
+        await self._emit(
+            "task_started", {"task_id": task.id, "agent": task.agent, "action": task.action}
+        )
 
         start = time.time()
         retry_count = 0
         max_retries = self._retry_config.max_retries
-        
+
         while retry_count <= max_retries:
             try:
                 # Inject outputs from dependencies
@@ -558,23 +577,23 @@ class Orchestrator:
 
                 # Route to appropriate agent
                 executor = await self.route_task(task)
-                
+
                 # Execute task
                 if asyncio.iscoroutinefunction(executor):
                     task.output = await executor(task.action, task.input)
                 else:
                     task.output = await asyncio.to_thread(executor, task.action, task.input)
-                
+
                 # Record success
                 self._circuit_breakers[task.agent].record_success()
                 task.state = TaskState.DONE
                 break
-                
+
             except Exception as e:
                 # Try to handle failure with retry
                 retry_count += 1
                 should_retry = await self.handle_task_failure(task, graph, e)
-                
+
                 if not should_retry:
                     task.output = {"error": str(e)}
                     task.state = TaskState.FAILED
@@ -582,23 +601,28 @@ class Orchestrator:
                     break
 
         task.duration_ms = (time.time() - start) * 1000
-        await self._emit("task_completed", {
-            "task_id": task.id,
-            "agent": task.agent,
-            "state": task.state.value,
-            "duration_ms": round(task.duration_ms, 1),
-            "retries": retry_count
-        })
+        await self._emit(
+            "task_completed",
+            {
+                "task_id": task.id,
+                "agent": task.agent,
+                "state": task.state.value,
+                "duration_ms": round(task.duration_ms, 1),
+                "retries": retry_count,
+            },
+        )
 
-    async def execute(self, request: str, context: dict | None = None, trace_id: str | None = None) -> dict:
+    async def execute(
+        self, request: str, context: dict | None = None, trace_id: str | None = None
+    ) -> dict:
         """
         Main entry point: classify → decompose → execute → aggregate.
-        
+
         Args:
             request: User request string.
             context: Optional context dictionary with parameters.
             trace_id: Optional telemetry trace ID.
-            
+
         Returns:
             Dictionary with execution results.
         """
@@ -608,19 +632,16 @@ class Orchestrator:
 
         # Step 1: Classify intent
         intent = self.classify_intent(request)
-        await self._emit("intent_classified", {
-            "trace_id": tid,
-            "intent": intent.value,
-            "request": request
-        })
+        await self._emit(
+            "intent_classified", {"trace_id": tid, "intent": intent.value, "request": request}
+        )
 
         # Step 2: Decompose into execution graph
         graph = self.decompose_intent(intent, {**ctx, "request": request, "trace_id": tid})
-        await self._emit("graph_created", {
-            "trace_id": tid,
-            "task_count": len(graph.tasks),
-            "root_intent": intent.value
-        })
+        await self._emit(
+            "graph_created",
+            {"trace_id": tid, "task_count": len(graph.tasks), "root_intent": intent.value},
+        )
 
         # Step 3: Execute graph (timeout: 5 min max)
         results = await self.execute_graph(graph, timeout_seconds=300.0)
@@ -628,16 +649,19 @@ class Orchestrator:
         # Step 4: Calculate total duration
         duration = (time.time() - start) * 1000
 
-        await self._emit("execution_complete", {
-            "trace_id": tid,
-            "duration_ms": round(duration, 1),
-            "tasks": len(graph.tasks),
-            "intent": intent.value
-        })
+        await self._emit(
+            "execution_complete",
+            {
+                "trace_id": tid,
+                "duration_ms": round(duration, 1),
+                "tasks": len(graph.tasks),
+                "intent": intent.value,
+            },
+        )
 
         return {
             "trace_id": tid,
             "intent": intent.value,
             "results": results,
-            "duration_ms": round(duration, 1)
+            "duration_ms": round(duration, 1),
         }

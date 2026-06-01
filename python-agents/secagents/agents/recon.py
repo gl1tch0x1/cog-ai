@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class ReconAgent(BaseAgent):
     """Discovers attack surface: subdomains, endpoints, parameters.
-    
+
     Responsibilities:
     - Subdomain enumeration
     - HTTP probing
@@ -21,12 +21,14 @@ class ReconAgent(BaseAgent):
     """
 
     def __init__(self):
-        super().__init__(AgentConfig(
-            role=AgentRole.RECON,
-            name="recon",
-            tools=["subdomain_enum", "http_probe", "crawl", "param_discovery"],
-            timeout_seconds=300.0,
-        ))
+        super().__init__(
+            AgentConfig(
+                role=AgentRole.RECON,
+                name="recon",
+                tools=["subdomain_enum", "http_probe", "crawl", "param_discovery"],
+                timeout_seconds=300.0,
+            )
+        )
         self.logger = logging.getLogger("secagents.recon")
 
     def base_system_prompt(self) -> str:
@@ -88,10 +90,10 @@ class ReconAgent(BaseAgent):
 
     async def _full_recon(self, target: str) -> dict:
         """Execute full reconnaissance workflow.
-        
+
         Args:
             target: Target domain/URL
-            
+
         Returns:
             Aggregated recon findings
         """
@@ -104,7 +106,7 @@ class ReconAgent(BaseAgent):
                 self._http_probe(target),
                 self._crawl(target),
             ]
-            
+
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             findings = []
@@ -133,10 +135,10 @@ class ReconAgent(BaseAgent):
 
     async def _subdomain_enum(self, target: str) -> dict:
         """Enumerate subdomains for target.
-        
+
         Args:
             target: Target domain
-            
+
         Returns:
             Subdomain findings
         """
@@ -186,10 +188,10 @@ class ReconAgent(BaseAgent):
 
     async def _http_probe(self, target: str) -> dict:
         """Probe discovered hosts for HTTP services.
-        
+
         Args:
             target: Target domain/URL
-            
+
         Returns:
             HTTP service findings
         """
@@ -234,10 +236,10 @@ class ReconAgent(BaseAgent):
 
     async def _crawl(self, target: str) -> dict:
         """Crawl target for endpoints and pages.
-        
+
         Args:
             target: Target URL
-            
+
         Returns:
             Crawled endpoints
         """
@@ -299,10 +301,10 @@ class ReconAgent(BaseAgent):
 
     async def _param_discovery(self, target: str) -> dict:
         """Discover parameters in discovered endpoints.
-        
+
         Args:
             target: Target URL
-            
+
         Returns:
             Parameter findings
         """

@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowPhase(str, Enum):
     """Workflow phases."""
+
     PLANNING = "planning"
     RECON = "recon"
     DISCOVERY = "discovery"
@@ -23,7 +24,7 @@ class WorkflowPhase(str, Enum):
 
 class SupervisorAgent(BaseAgent):
     """Coordinates all agents and approves phase transitions.
-    
+
     Responsibilities:
     - Intent classification for incoming tasks
     - Task decomposition across multiple agents
@@ -33,12 +34,14 @@ class SupervisorAgent(BaseAgent):
     """
 
     def __init__(self):
-        super().__init__(AgentConfig(
-            role=AgentRole.SUPERVISOR,
-            name="supervisor",
-            tools=["approve_transition", "escalate", "abort", "classify_intent"],
-            timeout_seconds=60.0,
-        ))
+        super().__init__(
+            AgentConfig(
+                role=AgentRole.SUPERVISOR,
+                name="supervisor",
+                tools=["approve_transition", "escalate", "abort", "classify_intent"],
+                timeout_seconds=60.0,
+            )
+        )
         self.logger = logging.getLogger("secagents.supervisor")
 
     def base_system_prompt(self) -> str:
@@ -80,20 +83,23 @@ class SupervisorAgent(BaseAgent):
 
     def _classify_intent(self, task: dict) -> dict:
         """Classify incoming task intent.
-        
+
         Args:
             task: Task containing user intent or objective
-            
+
         Returns:
             Classification result with detected intent category
         """
         objective = task.get("objective", "").lower()
         scope = task.get("scope", {})
-        
+
         # Intent classification logic
         if any(word in objective for word in ["recon", "enumerate", "discover"]):
             intent = "reconnaissance"
-        elif any(word in objective for word in ["web3", "contract", "solidity", "token", "meme", "solana"]):
+        elif any(
+            word in objective
+            for word in ["web3", "contract", "solidity", "token", "meme", "solana"]
+        ):
             intent = "web3_auditing"
         elif any(word in objective for word in ["test", "scan", "vulnerability", "find"]):
             intent = "vulnerability_testing"
@@ -105,7 +111,7 @@ class SupervisorAgent(BaseAgent):
             intent = "general_testing"
 
         self.logger.info(f"Classified intent as: {intent}")
-        
+
         return {
             "classified_intent": intent,
             "scope_valid": self._validate_scope(scope),
@@ -114,10 +120,10 @@ class SupervisorAgent(BaseAgent):
 
     def _review_phase(self, state: dict) -> dict:
         """Review current phase and decide whether to proceed.
-        
+
         Args:
             state: Current workflow state
-            
+
         Returns:
             Decision on whether to advance or wait
         """
@@ -160,10 +166,10 @@ class SupervisorAgent(BaseAgent):
 
     def _approve_transition(self, task: dict) -> dict:
         """Approve phase transition with validation.
-        
+
         Args:
             task: Transition request
-            
+
         Returns:
             Approval decision with validation results
         """
@@ -196,10 +202,10 @@ class SupervisorAgent(BaseAgent):
 
     def _abort_workflow(self, task: dict) -> dict:
         """Abort workflow with reason.
-        
+
         Args:
             task: Abort request
-            
+
         Returns:
             Abort confirmation
         """
@@ -218,10 +224,10 @@ class SupervisorAgent(BaseAgent):
 
     def _escalate_issue(self, task: dict) -> dict:
         """Escalate issue for manual review.
-        
+
         Args:
             task: Escalation request
-            
+
         Returns:
             Escalation confirmation
         """
@@ -241,10 +247,10 @@ class SupervisorAgent(BaseAgent):
 
     def _validate_scope(self, scope: dict) -> bool:
         """Validate scope boundaries.
-        
+
         Args:
             scope: Scope configuration
-            
+
         Returns:
             True if scope is valid
         """
@@ -253,10 +259,10 @@ class SupervisorAgent(BaseAgent):
 
     def _recommend_phases(self, intent: str) -> list[str]:
         """Recommend workflow phases based on intent.
-        
+
         Args:
             intent: Classified intent
-            
+
         Returns:
             List of recommended phases
         """
@@ -297,10 +303,10 @@ class SupervisorAgent(BaseAgent):
 
     def _get_next_phase(self, current_phase: str) -> Optional[str]:
         """Get next phase in workflow.
-        
+
         Args:
             current_phase: Current phase name
-            
+
         Returns:
             Next phase or None if at end
         """
@@ -313,10 +319,10 @@ class SupervisorAgent(BaseAgent):
 
     def _calculate_confidence_for_decision(self, decision: dict) -> float:
         """Calculate confidence for supervisor decision.
-        
+
         Args:
             decision: Decision result
-            
+
         Returns:
             Confidence score 0.0-1.0
         """

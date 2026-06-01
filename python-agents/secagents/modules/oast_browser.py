@@ -17,6 +17,7 @@ class OASTClient:
         """Register and get a unique interaction URL."""
         # In production: full Interactsh protocol handshake
         import uuid
+
         self._session_id = uuid.uuid4().hex[:12]
         self._poll_url = f"https://{self._session_id}.{self.server}"
         return self._poll_url
@@ -48,6 +49,7 @@ class BrowserCluster:
         async with self._sem:
             try:
                 from playwright.async_api import async_playwright
+
                 async with async_playwright() as p:
                     browser = await p.chromium.launch(headless=True)
                     page = await browser.new_page()
@@ -83,6 +85,7 @@ class FeedbackLoop:
     def __init__(self, path: str = ".secagents/feedback.json"):
         import json
         from pathlib import Path
+
         self._path = Path(path)
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._data: dict = {"confirmed": [], "false_positives": []}
@@ -107,4 +110,5 @@ class FeedbackLoop:
 
     def _save(self) -> None:
         import json
+
         self._path.write_text(json.dumps(self._data, indent=2))

@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from rich.console import Console
-from rich.text import Text
 
 from secagents.operational.integrity import check_os_security_updates, OS_UPDATE_MESSAGE
 from secagents.vault.env_loader import Vault
@@ -71,15 +70,20 @@ class ScanPipeline:
 
         # 2. The Vault
         from secagents.core.skill_manager import skill_manager
+
         if skill_manager.skills:
-             self.console.print(f"[bold green]🔥[/bold green] [white]Advanced Hunting Skills loaded from SKILL.md[/white]")
-        
+            self.console.print(
+                "[bold green]🔥[/bold green] [white]Advanced Hunting Skills loaded from SKILL.md[/white]"
+            )
+
         vault = Vault()
         await vault.validate_all()
         # vault.print_status() # CLI handles this now
-        
+
         if not vault.any_llm_available() and not os.environ.get("OLLAMA_HOST"):
-            self.console.print("[bold yellow]⚠️  No LLM keys validated — attempting local Ollama fallback[/bold yellow]")
+            self.console.print(
+                "[bold yellow]⚠️  No LLM keys validated — attempting local Ollama fallback[/bold yellow]"
+            )
             setup_ollama(pull=self.setup_local_llm)
 
         if self.setup_local_llm:
@@ -98,12 +102,16 @@ class ScanPipeline:
                 sandbox = FortressSandbox(self.results_dir)
                 self.results["run_dir"] = str(sandbox.run_dir)
                 if not sandbox.ensure_image():
-                    self.console.print("[yellow]⚠️  Fortress image missing — build: docker build -t secagents/sandbox:latest -f sandbox/Dockerfile sandbox/[/yellow]")
+                    self.console.print(
+                        "[yellow]⚠️  Fortress image missing — build: docker build -t secagents/sandbox:latest -f sandbox/Dockerfile sandbox/[/yellow]"
+                    )
             except RuntimeError as e:
                 self.console.print(f"[yellow]⚠️  Fortress unavailable: {e}[/yellow]")
 
         # 4. External intel
-        self.console.print("[bold blue]󰋼[/bold blue] [white]Extracting external intelligence...[/white]")
+        self.console.print(
+            "[bold blue]󰋼[/bold blue] [white]Extracting external intelligence...[/white]"
+        )
         intel: dict = {}
         chaos = ChaosIntel()
         shodan = ShodanIntel()
@@ -117,7 +125,9 @@ class ScanPipeline:
             self.results["phases"]["shodan"] = {"records": len(dns_data)}
 
         # 5. The Armada — execute full DAG
-        self.console.print("[bold blue]󰋼[/bold blue] [white]Deploying agent swarm (The Armada)...[/white]")
+        self.console.print(
+            "[bold blue]󰋼[/bold blue] [white]Deploying agent swarm (The Armada)...[/white]"
+        )
         shared: dict = {
             "target": domain,
             "depth": self.depth,
@@ -141,26 +151,30 @@ class ScanPipeline:
 
         # Secondary: Arsenal heuristic probes
         if self.arsenal_secondary:
-            self.console.print("[bold blue]󰋼[/bold blue] [white]Engaging secondary heuristic probes (The Arsenal)...[/white]")
+            self.console.print(
+                "[bold blue]󰋼[/bold blue] [white]Engaging secondary heuristic probes (The Arsenal)...[/white]"
+            )
             scanner = ArsenalScanner(verify_ssl=True)
             endpoints = shared.get("endpoints") or [f"https://{domain}"]
             limit = 25 if self.depth == "quick" else 50 if self.depth == "standard" else 100
             for url in endpoints[:limit]:
                 for p in await scanner.scan_url(url):
-                    raw_findings.append({
-                        "title": f"{p.vuln_type.upper()} in {p.parameter}",
-                        "type": p.vuln_type,
-                        "vuln_type": p.vuln_type,
-                        "url": p.url,
-                        "parameter": p.parameter,
-                        "payload": p.payload,
-                        "evidence": p.evidence,
-                        "proof_signal": p.evidence,
-                        "severity": "medium",
-                        "confidence": p.confidence,
-                        "source": "arsenal",
-                        "deterministic": False,
-                    })
+                    raw_findings.append(
+                        {
+                            "title": f"{p.vuln_type.upper()} in {p.parameter}",
+                            "type": p.vuln_type,
+                            "vuln_type": p.vuln_type,
+                            "url": p.url,
+                            "parameter": p.parameter,
+                            "payload": p.payload,
+                            "evidence": p.evidence,
+                            "proof_signal": p.evidence,
+                            "severity": "medium",
+                            "confidence": p.confidence,
+                            "source": "arsenal",
+                            "deterministic": False,
+                        }
+                    )
 
         # Deduplicate
         seen: set[str] = set()
@@ -172,7 +186,9 @@ class ScanPipeline:
                 unique.append(f)
 
         # 6. The Crucible
-        self.console.print("[bold blue]󰋼[/bold blue] [white]Validating signals and correlating chains (The Crucible)...[/white]")
+        self.console.print(
+            "[bold blue]󰋼[/bold blue] [white]Validating signals and correlating chains (The Crucible)...[/white]"
+        )
         crucible = CrucibleValidator(consensus=consensus)
         validated = await crucible.validate_batch(unique)
         self.results["findings"] = validated
@@ -185,7 +201,9 @@ class ScanPipeline:
             registry.register(f)
 
         # 7. Remediation
-        self.console.print("[bold blue]󰋼[/bold blue] [white]Generating breach reports and auto-patches...[/white]")
+        self.console.print(
+            "[bold blue]󰋼[/bold blue] [white]Generating breach reports and auto-patches...[/white]"
+        )
         patcher = AutoPatcher()
         patcher.apply_to_findings(validated)
         reporter = ReportGenerator(self.results_dir / "reports")
@@ -201,7 +219,9 @@ class ScanPipeline:
             await notifier.create_jira_tickets(validated)
 
         # 8. Hermes
-        self.console.print("[bold blue]󰋼[/bold blue] [white]Archiving mission data to persistent memory...[/white]")
+        self.console.print(
+            "[bold blue]󰋼[/bold blue] [white]Archiving mission data to persistent memory...[/white]"
+        )
         hermes = HermesMemory(self.results_dir / "hermes" / "memory.db")
         retro = RetrospectiveAgent(hermes)
         self.results["hermes"] = retro.analyze(self.results)

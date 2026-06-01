@@ -81,7 +81,9 @@ def check_os_security_updates(skip: bool = False) -> tuple[bool, str]:
                 check=False,
             )
             # dnf returns 100 when updates available
-            lines = [ln for ln in result.stdout.splitlines() if ln.strip() and not ln.startswith("Last")]
+            lines = [
+                ln for ln in result.stdout.splitlines() if ln.strip() and not ln.startswith("Last")
+            ]
             if result.returncode == 100 or len(lines) > 2:
                 return False, OS_UPDATE_MESSAGE.replace("apt", "dnf")
             return True, "No pending dnf security updates"
@@ -114,11 +116,17 @@ def fetch_latest_release_version(repo: str = GITHUB_REPO) -> str | None:
 def check_tool_update(local_version: str = CURRENT_VERSION) -> UpdateCheckResult:
     remote = fetch_latest_release_version()
     if not remote:
-        return UpdateCheckResult(False, local_version, local_version, "Could not fetch remote version")
+        return UpdateCheckResult(
+            False, local_version, local_version, "Could not fetch remote version"
+        )
     local_t = _parse_version(local_version)
     remote_t = _parse_version(remote)
     available = remote_t > local_t
-    msg = f"Update available: {local_version} → {remote}" if available else f"Up to date ({local_version})"
+    msg = (
+        f"Update available: {local_version} → {remote}"
+        if available
+        else f"Up to date ({local_version})"
+    )
     return UpdateCheckResult(available, local_version, remote, msg)
 
 
