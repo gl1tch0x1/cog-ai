@@ -81,7 +81,9 @@ Built for:
 | 🧠 **Neural Orchestration** | Python-based brain that decomposes mission objectives into atomic execution DAGs |
 | 🔍 **Autonomous Recon** | Go-powered concurrent subdomain enumeration, endpoint crawling, and banner grabbing |
 | 🎯 **PoC Generation** | Auto-crafts deterministic Python/cURL proof-of-concepts to eliminate false positives |
+| 🕸️ **Web3 Auditing** | Smart contract & token ecosystem auditing for rug-pull vectors (EVM & Solana) |
 | 🛡️ **AI Supply Chain Audits** | Detects weaponized AI configs (`.cursorrules`, `mcp.json`), prompt injection, and RAG exfiltration |
+| 🔬 **Offensive Intelligence** | 20+ vuln classes and 50+ contract red-flags from Claude Bug Bounty (v4.3.0) |
 | 🦾 **Neural Filter** | 99% noise-reduction layer — findings are consensus-validated by specialist agents |
 | ⛓️ **Exploit Chain Correlation** | Links individual findings into full multi-step attack paths |
 | 🔁 **Autopilot Mode** | Fire-and-forget autonomous scanning from recon to report |

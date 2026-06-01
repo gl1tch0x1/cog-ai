@@ -1,15 +1,15 @@
 """Centralized version management for SecAgents."""
 
-__version__ = "0.2.0"
-__release_date__ = "2026-05-20"
+__version__ = "0.3.0-dev"
+__release_date__ = "2026-06-01"
 __author__ = "SecAgents Contributors"
 __license__ = "MIT"
 
 # Semantic versioning breakdown
 VERSION_MAJOR = 0
-VERSION_MINOR = 2
+VERSION_MINOR = 3
 VERSION_PATCH = 0
-VERSION_PRERELEASE = None  # None for stable, "alpha"/"beta"/"rc" otherwise
+VERSION_PRERELEASE = "dev"  # None for stable, "alpha"/"beta"/"rc" otherwise
 
 def get_version_string() -> str:
     """Get full version string."""

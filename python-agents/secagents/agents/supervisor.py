@@ -93,6 +93,8 @@ class SupervisorAgent(BaseAgent):
         # Intent classification logic
         if any(word in objective for word in ["recon", "enumerate", "discover"]):
             intent = "reconnaissance"
+        elif any(word in objective for word in ["web3", "contract", "solidity", "token", "meme", "solana"]):
+            intent = "web3_auditing"
         elif any(word in objective for word in ["test", "scan", "vulnerability", "find"]):
             intent = "vulnerability_testing"
         elif any(word in objective for word in ["report", "generate", "document"]):
@@ -263,6 +265,12 @@ class SupervisorAgent(BaseAgent):
                 WorkflowPhase.PLANNING.value,
                 WorkflowPhase.RECON.value,
                 WorkflowPhase.DISCOVERY.value,
+            ],
+            "web3_auditing": [
+                WorkflowPhase.PLANNING.value,
+                WorkflowPhase.TESTING.value,
+                WorkflowPhase.VALIDATION.value,
+                WorkflowPhase.REPORTING.value,
             ],
             "vulnerability_testing": [
                 WorkflowPhase.PLANNING.value,

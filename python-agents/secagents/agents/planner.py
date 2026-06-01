@@ -190,6 +190,12 @@ class PlannerAgent(BaseAgent):
                         "target": target,
                         "estimated_duration": 45,
                     },
+                    {
+                        "agent": "web3_security",
+                        "action": "audit",
+                        "target_path": target, # Could be local source or remote
+                        "estimated_duration": 40,
+                    },
                 ]
             },
             {

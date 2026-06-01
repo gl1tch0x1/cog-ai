@@ -26,6 +26,7 @@ class AgentRole(str, Enum):
     RECON = "recon"
     WEB_SECURITY = "web_security"
     API_SECURITY = "api_security"
+    WEB3_SECURITY = "web3_security"
     VALIDATOR = "validator"
     REPORT = "report"
 

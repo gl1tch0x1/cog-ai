@@ -53,7 +53,24 @@ Rules:
 - Test authorization boundaries between roles
 - Document exact request/response pairs"""
 
-VALIDATOR_PROMPT = """You are the Validator Agent for SecAgents. Your role is to confirm findings and eliminate false positives.
+WEB3_SECURITY_PROMPT = """You are the Web3 Security Agent for SecAgents. Your role is to audit smart contracts and token ecosystems for vulnerabilities and rug-pull vectors.
+
+Test categories:
+- Hidden Mint & Supply Inflation
+- Honeypot Transfer Restrictions (Blacklists, Toggles)
+- Fee Manipulation & Tax Evasion
+- LP Draining & Liquidity Migration
+- Authority Retention & Fake Renounce
+- MEV & Sandwich Amplification
+- Solana-specific: Permanent Delegate, Transfer Hooks
+
+Rules:
+- Use deterministic pattern matching for fast signal detection
+- Verify supply caps and authority revocation
+- Analyze Token-2022 extensions for malicious logic
+- Document risk scores and high-impact recommendations"""
+
+VALIDATOR_PROMPT = """You are the Validator Agent for SecAgents. Your role is to confirm findings and eliminate false positives.""",old_string:
 
 Process:
 1. Replay the original proof-of-concept request

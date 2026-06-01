@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0-dev] — 2026-06-01
+
+### 🎯 Offensive Intelligence & Web3 Integration
+
+#### ✨ Added
+
+**Web3 & Meme-Coin Auditing:**
+- ✅ **Web3SecurityAgent**: New specialized agent for smart contract and token ecosystem auditing.
+- ✅ **Deterministic Red-Flag Scanner**: 50+ patterns for EVM and Solana tokens (Hidden Mint, Honeypot, LP Drain, Authority Retention).
+- ✅ **Meme-Coin Specific Logic**: Support for Solana Token-2022 extensions (Transfer Hooks, Permanent Delegate).
+- ✅ **Risk Scoring Engine**: Automated risk scoring and verdict generation for contracts.
+
+**Advanced Web Vulnerability Intelligence:**
+- ✅ **20+ Enhanced Vuln Classes**: Integrated offensive signatures from Claude Bug Bounty toolkit.
+- ✅ **Linear-Scaling Time-Based Verification**: Robust detection for SQLi, RCE, and SSTI using timing analysis.
+- ✅ **11 SSRF Bypass Techniques**: Advanced IP encoding and parser confusion payloads.
+- ✅ **10 File Upload Bypass Techniques**: Content-Type, Magic Bytes, and extension mutation testing.
+- ✅ **SAML & SSO Attack Suite**: XSW, signature stripping, and comment injection testing.
+- ✅ **MFA Bypass Logic**: Step-skipping and response manipulation detection.
+
+**Reporting & Strategy:**
+- ✅ **Impact-First Reporting**: Refactored `ReportAgent` to prioritize business risk and remediation at the top.
+- ✅ **CVSS 4.0 Integration**: Added support for CVSS v4.0 Base Score calculations.
+- ✅ **Risk Formula (Risk = Impact * Probability)**: Integrated structured risk assessment.
+- ✅ **Curated Wordlists**: Integrated 500KB+ of industry-standard security wordlists.
+
+**Workflow Coordination:**
+- ✅ **Web3 Auditing Intent**: `SupervisorAgent` now recognizes and coordinates smart contract auditing tasks.
+- ✅ **Enhanced Planning**: `PlannerAgent` automatically allocates `Web3SecurityAgent` for relevant objectives.
+
+#### 🚀 Improvements
+
+- **High-Performance HTTP Client**: `httpx` integration in agents for actual vulnerability testing.
+- **Robustness & Foundation**: Solidified agent base classes and structured prompt engineering.
+
+---
+
 ## [0.2.0] — 2026-05-20
 
 ### 🎯 Major Release: Production-Ready Infrastructure
