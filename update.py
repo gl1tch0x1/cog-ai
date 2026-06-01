@@ -50,11 +50,17 @@ def main():
         sys.exit(1)
 
     # 4. Check for updates
-    status = run("git status -uno", cwd=root)
-    if "Your branch is behind" not in status.stdout:
-        ok("SecAgents is already up to date.")
+    info("Checking for updates...")
+    local_rev = run("git rev-parse HEAD", cwd=root).stdout.strip()
+    remote_rev = run("git rev-parse @{u}", cwd=root).stdout.strip()
+    
+    if local_rev == remote_rev:
+        ok("SecAgents is already up to date (Rev: " + local_rev[:7] + ").")
         # Offer to re-run installer anyway
-        choice = input("\nRe-run installer to ensure dependencies are synced? [y/N]: ").lower()
+        try:
+            choice = input("\nRe-run installer to ensure dependencies are synced? [y/N]: ").lower()
+        except (EOFError, KeyboardInterrupt):
+            return
         if choice != 'y':
             return
     else:

@@ -159,7 +159,6 @@ class Orchestrator:
                     handler(data)
             except Exception:
                 pass
-
     def classify_intent(self, request: str) -> Intent:
         """
         Fast intent classification without LLM call.
@@ -171,8 +170,12 @@ class Orchestrator:
             Classified Intent enum value.
         """
         r = request.lower()
-        if any(w in r for w in ["ai safety", "repo poisoning", "assistant config", "cursorrules"]):
+        if any(w in r for w in ["ai safety", "repo poisoning", "assistant config", "cursorrules", "prompt injection"]):
             return Intent.AI_SAFETY
+        if any(w in r for w in ["bug bounty", "bounty hunter", "h1", "bugcrowd"]):
+            return Intent.SCAN # Map to scan for now, but with bug bounty context
+        if any(w in r for w in ["web assessment", "pentest", "security audit"]):
+            return Intent.SCAN
         if any(w in r for w in ["plan", "decompose", "strategy"]):
             return Intent.PLAN
         if any(w in r for w in ["report", "generate", "export", "summary"]):

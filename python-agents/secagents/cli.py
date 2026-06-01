@@ -104,8 +104,8 @@ async def cmd_scan(args: argparse.Namespace) -> int:
     print(f"\n🎯 SecAgent scan: {args.target} (depth={args.depth}, workers={args.workers})\n")
     try:
         results = await pipeline.run()
-    except SystemExit as e:
-        print(str(e))
+    except Exception as e:
+        print(f"❌ Scan execution failed: {e}")
         return 2
 
     n = len(results.get("findings", []))
@@ -174,10 +174,15 @@ async def cmd_keyhacks(args: argparse.Namespace) -> int:
     for p in args.paths:
         path = Path(p)
         if path.is_dir():
-            paths.extend(str(f) for f in path.rglob("*") if f.is_file())
+            paths.extend(str(f) for f in path.rglob("*") if f.is_file() and not any(part in f.parts for part in (".git", ".venv", ".next", "node_modules")))
         elif path.is_file():
             paths.append(str(path))
-    findings = await agent.scan_paths(paths[:100])
+    
+    if not paths:
+        print("No files found to scan.")
+        return 0
+
+    findings = await agent.scan_paths(paths[:500])
     for f in findings:
         status = "LIVE" if f.valid else ("UNKNOWN" if f.valid is None else "DEAD")
         print(f"  [{status}] {f.service}: {f.key_masked} — {f.message} ({f.source})")

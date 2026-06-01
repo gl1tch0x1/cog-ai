@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import httpx
 
 from secagents.vault.env_loader import mask_secret
+from secagents.core.skill_manager import skill_manager
 
 
 # Validation endpoints inspired by public keyhacks knowledge base
@@ -72,6 +72,9 @@ class KeyhacksAgent:
     def __post_init__(self) -> None:
         rpm = max(1.0, self.requests_per_minute)
         self._min_interval = 60.0 / rpm
+        if skill_manager.skills:
+            # Skill awareness: potentially adjust regex or priority based on skills
+            pass
 
     def discover_keys(self, text: str, source: str = "") -> list[tuple[str, str]]:
         """Extract potential keys from text."""

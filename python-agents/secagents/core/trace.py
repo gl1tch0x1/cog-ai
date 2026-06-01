@@ -1,11 +1,22 @@
-"""Execution tracing, token tracking, latency monitoring."""
-
 from __future__ import annotations
 
 import time
 import uuid
+import os
+import sys
 from dataclasses import dataclass, field
 from threading import Lock
+from loguru import logger
+
+# Configure Loguru for Agents
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+LOG_FORMAT = os.environ.get("LOG_FORMAT", "json")
+
+logger.remove()
+if LOG_FORMAT == "json":
+    logger.add(sys.stdout, level=LOG_LEVEL, serialize=True)
+else:
+    logger.add(sys.stdout, level=LOG_LEVEL)
 
 
 @dataclass
@@ -44,6 +55,14 @@ class Tracer:
         span = Span(name=name, parent_id=parent_id, metadata=meta)
         with self._lock:
             self._spans.append(span)
+        
+        logger.info(
+            "Span started",
+            span_id=span.id,
+            span_name=span.name,
+            parent_id=span.parent_id,
+            **meta
+        )
         return span
 
     def finish_span(self, span: Span, status: str = "ok", tokens_in: int = 0, tokens_out: int = 0) -> None:
@@ -53,6 +72,16 @@ class Tracer:
         with self._lock:
             self._token_total["in"] += tokens_in
             self._token_total["out"] += tokens_out
+        
+        logger.info(
+            "Span finished",
+            span_id=span.id,
+            span_name=span.name,
+            status=span.status,
+            duration_ms=round(span.duration_ms, 2),
+            tokens_in=tokens_in,
+            tokens_out=tokens_out
+        )
 
     def get_trace(self, root_id: str | None = None) -> list[dict]:
         """Get trace tree. If root_id given, only that subtree."""

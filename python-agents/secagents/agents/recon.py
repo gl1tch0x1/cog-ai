@@ -29,7 +29,7 @@ class ReconAgent(BaseAgent):
         ))
         self.logger = logging.getLogger("secagents.recon")
 
-    def system_prompt(self) -> str:
+    def base_system_prompt(self) -> str:
         """Return the recon agent's system prompt."""
         return RECON_PROMPT
 

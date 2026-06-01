@@ -41,7 +41,7 @@ class SupervisorAgent(BaseAgent):
         ))
         self.logger = logging.getLogger("secagents.supervisor")
 
-    def system_prompt(self) -> str:
+    def base_system_prompt(self) -> str:
         """Return the supervisor's system prompt."""
         return SUPERVISOR_PROMPT
 

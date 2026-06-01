@@ -2,7 +2,7 @@ name: Release — Packaging & Binary Artifacts
 
 on:
   push:
-    tags: ["v*"]  # Push events to matching v*, i.e. v1.0, v20.15.10
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
@@ -12,14 +12,84 @@ on:
 
 permissions:
   contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────
-  #  JOB 1: Build Binaries (PyInstaller)
+  #  JOB 0: Validate Release
+  # ─────────────────────────────────────────────────────────────────────
+  validate-release:
+    name: "Validate Release Metadata"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+      tag: ${{ steps.extract-version.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract and validate version
+        id: extract-version
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            TAG="${VERSION}"
+            VERSION_NUM="${VERSION#v}"
+          else
+            TAG="${{ github.ref_name }}"
+            VERSION_NUM="${TAG#v}"
+          fi
+          
+          # Basic SemVer regex
+          if ! [[ "$VERSION_NUM" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION_NUM"
+            exit 1
+          fi
+          
+          echo "version=$VERSION_NUM" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  JOB 1: Run Tests
+  # ─────────────────────────────────────────────────────────────────────
+  test:
+    name: "Run Test Suite"
+    runs-on: ubuntu-latest
+    needs: validate-release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -e ./python-agents[dev]
+          pip install -e ./api[dev]
+
+      - name: Run pytest
+        run: |
+          pytest tests/unit/ -v --tb=short --timeout=30
+        env:
+          PYTHONPATH: python-agents:api
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  JOB 2: Build Binaries
   # ─────────────────────────────────────────────────────────────────────
   build-binaries:
     name: "Build CLI Binaries"
     runs-on: ${{ matrix.os }}
+    needs: [validate-release, test]
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -51,46 +121,169 @@ jobs:
 
       - name: Build with PyInstaller
         shell: bash
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "10.15"
         run: |
-          # Use a single-file executable build
-          pyinstaller --onefile --name ${{ matrix.artifact_name }} python-agents/secagents/__main__.py
+          # Detect separator for --add-data
+          SEP=":"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then SEP=";"; fi
+          
+          # Build single-file binary
+          # We use --paths to ensure PyInstaller finds the secagents package
+          pyinstaller --onefile \
+            --name ${{ matrix.artifact_name }} \
+            --paths python-agents \
+            python-agents/secagents/__main__.py
+          
           # Rename to asset name
-          mv dist/${{ matrix.artifact_name }}* dist/${{ matrix.asset_name }}
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            mv dist/${{ matrix.artifact_name }}.exe dist/${{ matrix.asset_name }}
+          else
+            mv dist/${{ matrix.artifact_name }} dist/${{ matrix.asset_name }}
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: dist/${{ matrix.asset_name }}
+          retention-days: 1
 
   # ─────────────────────────────────────────────────────────────────────
-  #  JOB 2: Create GitHub Release
+  #  JOB 3: Build & Push Docker Images
+  # ─────────────────────────────────────────────────────────────────────
+  build-docker:
+    name: "Build & Push Docker Images"
+    runs-on: ubuntu-latest
+    needs: [validate-release, test]
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        image:
+          - name: api
+            context: ./
+            dockerfile: api/Dockerfile
+          - name: rust-core
+            context: ./
+            dockerfile: rust-core/Dockerfile
+          - name: recon
+            context: ./
+            dockerfile: go-services/recon/Dockerfile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image.name }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.validate-release.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate-release.outputs.version }}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  JOB 4: Create GitHub Release
   # ─────────────────────────────────────────────────────────────────────
   create-release:
     name: "Create GitHub Release"
     runs-on: ubuntu-latest
-    needs: build-binaries
+    needs: [validate-release, build-binaries, build-docker]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: release-artifacts
 
-      - name: Generate Changelog
-        id: changelog
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          # Flatten artifacts and copy to release-assets
+          find release-artifacts -type f -exec cp {} release-assets/ \;
+          cd release-assets
+          # Generate checksums excluding the checksum file itself
+          find . -type f ! -name "SHA256SUMS.txt" -exec sha256sum {} + > SHA256SUMS.txt
+          ls -lh
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.version || github.ref_name }}
-          name: Release ${{ github.event.inputs.version || github.ref_name }}
+          tag_name: ${{ needs.validate-release.outputs.tag }}
+          name: "🚀 Release ${{ needs.validate-release.outputs.version }}"
+          body: |
+            ## SecAgents Release ${{ needs.validate-release.outputs.version }}
+            
+            Automated release with CLI binaries, Docker images, and Python packages.
+            
+            ### Checksums
+            View `SHA256SUMS.txt` for artifact verification.
           draft: false
           prerelease: false
-          generate_release_notes: true
           files: |
-            artifacts/secagent-linux/secagent-linux-x64
-            artifacts/secagent-windows/secagent-windows-x64.exe
-            artifacts/secagent-macos/secagent-macos-x64
+            release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────
+  #  JOB 5: Publish Python Packages
+  # ─────────────────────────────────────────────────────────────────────
+  publish-pypi:
+    name: "Publish to PyPI"
+    runs-on: ubuntu-latest
+    needs: [validate-release, create-release]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          if [ -n "$TWINE_PASSWORD" ]; then
+            # Build and upload python-agents
+            cd python-agents && python -m build && twine upload dist/* --skip-existing
+            # Build and upload api
+            cd ../api && python -m build && twine upload dist/* --skip-existing
+          else
+            echo "⚠️ PYPI_TOKEN not set, skipping publish"
+          fi

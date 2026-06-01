@@ -29,7 +29,7 @@ class ValidatorAgent(BaseAgent):
         ))
         self.logger = logging.getLogger("secagents.validator")
 
-    def system_prompt(self) -> str:
+    def base_system_prompt(self) -> str:
         """Return the validator's system prompt."""
         return VALIDATOR_PROMPT
 

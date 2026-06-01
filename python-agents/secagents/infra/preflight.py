@@ -88,8 +88,18 @@ def _check_api_keys() -> CheckResult:
 
 def _check_disk_space() -> CheckResult:
     try:
-        stat = os.statvfs("/")
-        free_gb = (stat.f_bavail * stat.f_frsize) / (1024**3)
+        import platform
+        if platform.system() == "Windows":
+            import ctypes
+            free_bytes = ctypes.c_ulonglong(0)
+            ctypes.windll.kernel32.GetDiskFreeSpaceExW(
+                None, None, None, ctypes.byref(free_bytes)
+            )
+            free_gb = free_bytes.value / (1024 ** 3)
+        else:
+            stat = os.statvfs("/")
+            free_gb = (stat.f_bavail * stat.f_frsize) / (1024 ** 3)
+            
         ok = free_gb >= 1.0
         return CheckResult(
             name="Disk Space",
@@ -98,7 +108,7 @@ def _check_disk_space() -> CheckResult:
             message=f"{free_gb:.1f} GB free",
             remediation="Free up disk space (minimum 1GB required)" if not ok else "",
         )
-    except (OSError, AttributeError):
+    except (OSError, AttributeError, Exception):
         return CheckResult(name="Disk Space", passed=True, severity="info", message="Check skipped")
 
 

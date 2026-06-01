@@ -28,7 +28,7 @@ class PlannerAgent(BaseAgent):
         ))
         self.logger = logging.getLogger("secagents.planner")
 
-    def system_prompt(self) -> str:
+    def base_system_prompt(self) -> str:
         """Return the planner's system prompt."""
         return PLANNER_PROMPT
 

@@ -30,7 +30,7 @@ class ReportAgent(BaseAgent):
         ))
         self.logger = logging.getLogger("secagents.report")
 
-    def system_prompt(self) -> str:
+    def base_system_prompt(self) -> str:
         """Return the report agent's system prompt."""
         return REPORT_PROMPT
 

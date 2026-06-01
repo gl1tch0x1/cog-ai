@@ -111,8 +111,8 @@ class WebSecurityAgent(BaseAgent):
         ))
         self.logger = logging.getLogger("secagents.web_security")
 
-    def system_prompt(self) -> str:
-        """Return the web security agent's system prompt."""
+    def base_system_prompt(self) -> str:
+        """Return the web security agent's base system prompt."""
         return WEB_SECURITY_PROMPT
 
     async def execute(self, task: dict) -> AgentOutput:

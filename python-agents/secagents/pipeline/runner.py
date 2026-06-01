@@ -65,6 +65,10 @@ class ScanPipeline:
         self.results["phases"]["preflight"] = {"os_check": msg}
 
         # 2. The Vault
+        from secagents.core.skill_manager import skill_manager
+        if skill_manager.skills:
+             print(f"🔥 Advanced Hunting Skills loaded from SKILL.md")
+        
         vault = Vault()
         await vault.validate_all()
         vault.print_status()

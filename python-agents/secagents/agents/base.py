@@ -5,13 +5,17 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
+
+from secagents.core.skill_manager import skill_manager
 
 logger = logging.getLogger(__name__)
 
@@ -82,12 +86,21 @@ class BaseAgent(ABC):
         ...
 
     @abstractmethod
-    def system_prompt(self) -> str:
-        """Return the agent's system prompt."""
+    def base_system_prompt(self) -> str:
+        """Return the agent's base system prompt."""
         ...
+
+    def system_prompt(self, modular_skill: Optional[str] = None) -> str:
+        """Return the full system prompt including global and modular skills."""
+        # Default modular skill to the agent's role if not specified
+        skill_to_load = modular_skill or self.role.value
+        return skill_manager.apply_to_prompt(self.base_system_prompt(), skill_to_load)
 
     async def run(self, task: dict) -> AgentOutput:
         """Execute agent with full lifecycle (no retry)."""
+        # Mandatory notification per SKILL.md rules
+        await skill_manager.notify_invocation(self.name, task.get("action", "execute"))
+        
         self.logger.info(f"Starting execution: {task}")
         start_time = time.time()
         

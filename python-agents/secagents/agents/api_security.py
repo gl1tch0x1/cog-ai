@@ -31,7 +31,7 @@ class APISecurityAgent(BaseAgent):
         ))
         self.logger = logging.getLogger("secagents.api_security")
 
-    def system_prompt(self) -> str:
+    def base_system_prompt(self) -> str:
         """Return the API security agent's system prompt."""
         return API_SECURITY_PROMPT
 
