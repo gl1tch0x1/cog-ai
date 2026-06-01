@@ -269,7 +269,7 @@ def main():
     overall_success = True
     ui.layout["header"].update(get_header())
     
-    with Live(ui.layout, refresh_per_second=4, screen=True):
+    with Live(ui.layout, console=console, refresh_per_second=4, screen=True):
         for i, (name, func) in enumerate(phases):
             ui.update_phase(i, "[yellow]ACTIVE[/yellow]")
             ui.layout["footer"].update(Panel(Text(f"OPERATING: {name}", justify="center", style="bold white"), box=ROUNDED, border_style="magenta"))
