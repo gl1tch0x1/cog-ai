@@ -74,6 +74,7 @@ MIGRATION   = ROOT / "api" / "migrations" / "001_initial.sql"
 PYTHON_EXEC = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("python.exe" if IS_WIN else "python"))
 PIP_EXEC    = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("pip.exe" if IS_WIN else "pip"))
 PYTEST_EXEC = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("pytest.exe" if IS_WIN else "pytest"))
+UVICORN_EXEC = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("uvicorn.exe" if IS_WIN else "uvicorn"))
 
 # ─── Execution Logic ──────────────────────────────────────────────────────────
 _step = 0
@@ -179,8 +180,6 @@ def install_arsenal(args: argparse.Namespace) -> bool:
         if not path.exists(): continue
         info(f"Loading {name} modules...")
         try:
-            # We use --prefer-binary to avoid building from source (which requires Rust)
-            # especially if we are just running the Docker stack.
             run([PIP_EXEC, "install", "--prefer-binary", "-e", extras], cwd=path)
             ok(f"{name} armed and ready.")
         except subprocess.CalledProcessError as e:
@@ -232,6 +231,22 @@ ANTHROPIC_API_KEY=sk-ant-...
     info("REMINDER: Inject your API keys into .env before mission start.")
     return True
 
+def create_entrypoints() -> bool:
+    step("Deploying Entrypoint Scripts")
+    if IS_WIN:
+        # Windows .bat
+        content = f"@echo off\n\"{PYTHON_EXEC}\" -m secagents %*"
+        Path("secagent.bat").write_text(content)
+        ok("Windows entrypoint (secagent.bat) deployed.")
+    else:
+        # Linux/macOS .sh
+        content = f"#!/bin/bash\n\"{PYTHON_EXEC}\" -m secagents \"$@\""
+        sh_path = Path("secagent")
+        sh_path.write_text(content)
+        sh_path.chmod(0o755)
+        ok("Unix entrypoint (secagent) deployed.")
+    return True
+
 def start_docker_stack(args: argparse.Namespace) -> bool:
     step("Deploying Docker Operations")
     
@@ -253,7 +268,6 @@ def start_docker_stack(args: argparse.Namespace) -> bool:
 
     info("Igniting Docker containers and building images...")
     try:
-        # Use longer timeout for build
         subprocess.run(compose_cmd + ["up", "-d", "--build"], cwd=ROOT, check=True)
         ok("Docker operational stack is hot.")
     except Exception as e:
@@ -271,7 +285,6 @@ def run_tests(args: argparse.Namespace) -> bool:
 
     info("Executing unit tests...")
     try:
-        # We try to run with coverage, but fallback if it fails
         cmd = [PYTEST_EXEC, "tests/unit/", "-v", "--tb=short"]
         result = run(cmd, cwd=ROOT, check=False)
         if result.returncode == 0:
@@ -284,6 +297,25 @@ def run_tests(args: argparse.Namespace) -> bool:
         warn(f"Test sequence error: {e}")
         return False
 
+def ignite_api() -> bool:
+    step("Igniting API Control Plane")
+    if not Path(UVICORN_EXEC).exists():
+        fail("API ignition module (uvicorn) missing.")
+        return False
+
+    info("Starting SecAgent API server on port 8000...")
+    info("Press Ctrl+C to terminate mission.")
+    try:
+        cmd = [UVICORN_EXEC, "secagents_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+        subprocess.run(cmd, check=True)
+        return True
+    except KeyboardInterrupt:
+        print(f"\n{c(YELLOW, 'Mission terminated by operator.')}")
+        return True
+    except Exception as e:
+        fail(f"API crash: {e}")
+        return False
+
 def print_mission_briefing(success: bool) -> None:
     print("\n" + c(MAGENTA, "━" * 65))
     if success:
@@ -293,12 +325,11 @@ def print_mission_briefing(success: bool) -> None:
 
     print(f"\n{c(BOLD+WHITE, 'OPERATIONAL COMMANDS:')}")
     
-    act = "source .venv/bin/activate" if not IS_WIN else r".venv\Scripts\activate"
+    cli = "secagent" if not IS_WIN else "secagent.bat"
     
-    print(f"  {c(CYAN, '1.')} Hardening check:      {c(GRAY, 'cat .env')}")
-    print(f"  {c(CYAN, '2.')} Enter tunnel:        {c(GRAY, act)}")
-    print(f"  {c(CYAN, '3.')} Initialize scan:     {c(GRAY, 'secagent scan -t example.com')}")
-    print(f"  {c(CYAN, '4.')} Breach report:       {c(GRAY, 'ls cog-ai-results/')}")
+    print(f"  {c(CYAN, '1.')} CLI Access:          {c(GRAY, './' + cli + ' scan -t example.com')}")
+    print(f"  {c(CYAN, '2.')} Dashboard:           {c(GRAY, 'http://localhost:3000')}")
+    print(f"  {c(CYAN, '3.')} API Docs:            {c(GRAY, 'http://localhost:8000/docs')}")
     
     print("\n" + c(MAGENTA, "━" * 65))
     print(c(DIM+ITALIC+WHITE, "  'Industrial Power. Elite Intelligence. Mission Ready.'"))
@@ -310,6 +341,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--docker", action="store_true", help="Deploy with Docker stack")
     parser.add_argument("--no-test", action="store_true", help="Skip integrity tests")
+    parser.add_argument("--no-start", action="store_true", help="Do not start API server automatically")
     parser.add_argument("--ci", action="store_true")
     args = parser.parse_args()
 
@@ -317,7 +349,8 @@ def main() -> int:
         ("Preflight", lambda: run_preflight(args)),
         ("Environment", deploy_environment),
         ("Arsenal", lambda: install_arsenal(args)),
-        ("Intel", configure_intel)
+        ("Intel", configure_intel),
+        ("Entrypoints", create_entrypoints)
     ]
 
     if args.docker:
@@ -331,13 +364,19 @@ def main() -> int:
         try:
             if not phase(): 
                 success = False
-                if not args.docker: break # Fail fast if not in docker mode
+                if not args.docker: break
         except KeyboardInterrupt:
             print(f"\n{c(RED, 'Aborted.')}"); return 130
         except Exception as e:
             fail(f"Phase {name} crash: {e}"); success = False
 
-    print_mission_briefing(success and not _errors)
+    if success and not _errors:
+        print_mission_briefing(True)
+        if not args.no_start and not args.docker:
+            ignite_api()
+    else:
+        print_mission_briefing(False)
+        
     return 0 if (success and not _errors) else 1
 
 if __name__ == "__main__":
