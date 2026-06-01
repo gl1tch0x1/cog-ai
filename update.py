@@ -105,8 +105,28 @@ def main():
             pull = run_git("git pull", root)
             if pull.returncode != 0:
                 console.print("[error]󰅚 Synchronization collapsed. Conflict detected.[/error]")
-                sys.exit(1)
-            console.print("[success]󰄬 New intelligence integrated successfully.[/success]")
+                console.print(f"\n  [dim]{pull.stderr.strip()}[/dim]\n")
+                
+                # Robust conflict handling
+                try:
+                    console.print("[bold yellow]RECOVERY OPTION:[/bold yellow]")
+                    console.print("Local changes detected in core files. Favoring framework integrity is recommended.")
+                    confirm = console.input("  [bold magenta]::[/bold magenta] Overwrite local changes and force synchronize? [y/N]: ").lower()
+                    if confirm == 'y':
+                        console.print("[info]󰋼 Forcing synchronization via hard reset...[/info]")
+                        reset = run_git("git reset --hard origin/main", root)
+                        if reset.returncode == 0:
+                            console.print("[success]󰄬 Framework integrity restored.[/success]")
+                        else:
+                            console.print(f"[error]󰅚 Recovery failed: {reset.stderr.strip()}[/error]")
+                            sys.exit(1)
+                    else:
+                        console.print("[error]󰅚 Update aborted by user.[/error]")
+                        sys.exit(1)
+                except (KeyboardInterrupt, EOFError):
+                    sys.exit(1)
+            else:
+                console.print("[success]󰄬 New intelligence integrated successfully.[/success]")
 
     # 4. Handover
     console.print("\n[info]󰋼 Initiating deployment sequence to arm modules...[/info]\n")
