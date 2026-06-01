@@ -11,7 +11,7 @@
 
 **Autonomous Offensive AI Framework for Red Teams & Security Researchers**
 
-*Distributed cognitive system for autonomous red-teaming, vulnerability research, and Web3 auditing.*
+*Industrial Power. Elite Intelligence. Mission Ready.*
 
 ---
 
@@ -30,84 +30,86 @@
 
 ---
 
+## ⚔️ The Vision: Why SecAgent?
+
+Traditional vulnerability scanners operate on rigid, linear checklists. They lack the "cognitive pivot" required to identify complex exploit chains. **SecAgent** is an **AI-Native Distributed Cognitive System** engineered to replicate the reasoning patterns of a human elite operator.
+
+It doesn't just run tools; it **orchestrates an arsenal.** By leveraging a polyglot engine (Rust/Go/Python) and a swarm of autonomous agents, SecAgent understands the technical stack, identifies high-value attack paths, and generates **deterministic proof-of-concepts** for every confirmed vulnerability.
+
+---
+
+## 💀 Elite Capabilities
+
+| Module | Purpose | Impact |
+|--------|---------|--------|
+| 🧠 **Neural Orchestration** | Mission Decomposition | Transforms high-level objectives into executable Task DAGs. |
+| 🔍 **Autonomous Recon** | High-Speed Discovery | Go-powered concurrent subdomain enum and endpoint crawling. |
+| 🕸️ **Web3 Auditing** | Contract Hardening | Detects rug-pull vectors (Hidden Mint, LP Drain) in EVM & Solana. |
+| 🛡️ **AI Supply Chain** | AI Safety Audit | Detects weaponized `.cursorrules`, prompt injection, and RAG leaks. |
+| 🔬 **Offensive Intel** | Advanced Signatures | 20+ vuln classes and 50+ contract red-flags from Claude Bug Bounty. |
+| 🦾 **Neural Filter** | 99% Noise Reduction | Consensus-based validation eliminates thousands of false positives. |
+| ⛓️ **Exploit Chaining** | Attack Path Correlation | Links individual signals into full multi-step breach scenarios. |
+| 📊 **Elite Reporting** | Executive Deliverables | CVSS 4.0 compliant, impact-first Markdown/JSON/HTML reports. |
+
+---
+
 ## 📋 Table of Contents
 
-- [What Is SecAgent](#-what-is-secagent)
-- [💀 Capabilities](#-capabilities)
-- [🏛️ Architecture](#-architecture)
-  - [1. High-Level Topology](#1-system-architecture--high-level-topology)
-  - [2. Autonomous Scan Workflow](#2-autonomous-scan-workflow--end-to-end-lifecycle)
-  - [3. Agent Decision Logic](#3-agent-architecture--internal-decision-logic)
-- [⚡ Quick Start](#-quick-start)
-- [🛠️ Installation Guide](#-installation-guide)
-  - [Method 1 — Automated (Recommended)](#method-1--automated-recommended)
-  - [Method 2 — Docker Stack](#method-2--docker-stack)
-- [⚙️ Configuration](#-configuration)
-- [🎯 Running Your First Mission](#-running-your-first-mission)
-- [📁 Project Structure](#-project-structure)
-- [🤝 Contributing](#-contributing)
-- [🔍 Troubleshooting](#-troubleshooting)
+1.  [What Is SecAgent](#-the-vision-why-secagent)
+2.  [Capabilities](#-elite-capabilities)
+3.  [Deep Architecture](#-deep-architecture)
+    *   [High-Level Topology](#1-system-architecture--high-level-topology)
+    *   [Autonomous Scan Workflow](#2-autonomous-scan-workflow--end-to-end-lifecycle)
+    *   [Agent Decision Logic](#3-agent-architecture--internal-decision-logic)
+4.  [Quick Start](#-quick-start)
+5.  [Installation Universe](#-installation-universe)
+    *   [Method 1: Automated (Recommended)](#method-1--automated-deployment-recommended)
+    *   [Method 2: Docker Fortress (Isolated)](#method-2--docker-fortress-isolated)
+    *   [Method 3: Manual (Advanced)](#method-3--manual-deployment-advanced)
+6.  [Operational Intelligence (Configuration)](#-operational-intelligence-configuration)
+    *   [The Manifest (.env) Guide](#the-manifest-env--detailed-parameters)
+    *   [Scope Control](#scope-control-enforcement)
+7.  [Mission Operations (Usage)](#-mission-operations-usage)
+    *   [Scan Reference](#1-autonomous-scan)
+    *   [Vault Mastery](#2-operational-vault)
+    *   [Intelligence Recall](#3-intelligence-recall-update)
+8.  [The Specialist Agents](#-the-specialist-agents)
+9.  [Project Structure](#-project-structure)
+10. [Field Troubleshooting](#-field-troubleshooting)
 
 ---
 
-## ⚔️ What Is SecAgent
+## 🏛️ Deep Architecture
 
-Traditional scanners are rigid and context-blind. **SecAgent** is an **AI-Native Distributed Cognitive System** that reasons through an attack surface like an elite human operator. It understands tech stacks, identifies high-value attack paths, and generates **deterministic proof-of-concepts** for every confirmed vulnerability.
-
-**Built for:**
-- 🔴 **Red Teams** executing complex, full-scope engagements.
-- 🔬 **Security Researchers** conducting deep vulnerability research.
-- 🕸️ **Web3 Auditors** hunting for smart contract rug-pull vectors.
-- 🛡️ **DevSecOps** automating industrial-grade offensive testing.
-
----
-
-## 💀 Capabilities
-
-| Module | Description |
-|--------|-------------|
-| 🧠 **Neural Orchestration** | Decomposes mission objectives into atomic execution DAGs |
-| 🔍 **Autonomous Recon** | Go-powered concurrent subdomain enumeration and endpoint crawling |
-| 🎯 **PoC Generation** | Auto-crafts deterministic Python/cURL proof-of-concepts |
-| 🕸️ **Web3 Auditing** | Smart contract auditing for rug-pull vectors (EVM & Solana) |
-| 🛡️ **AI Supply Chain Audits** | Detects weaponized AI configs, prompt injection, and RAG leaks |
-| 🔬 **Offensive Intelligence** | 20+ vuln classes and 50+ contract red-flags from Claude Bug Bounty |
-| 🦾 **Neural Filter** | 99% noise-reduction — findings are consensus-validated |
-| ⛓️ **Exploit Chain Correlation** | Links individual findings into full multi-step attack paths |
-| 🔁 **Autopilot Mode** | Fire-and-forget autonomous scanning from recon to report |
-| 📊 **Structured Reporting** | CVSS 4.0 compliant, impact-first executive Markdown reports |
-
----
-
-## 🏛️ Architecture
+SecAgent is a high-performance polyglot system designed for horizontal scale and ultra-low latency.
 
 ### 1. System Architecture — High-Level Topology
 
 ```mermaid
 graph TB
-    subgraph EXTERNAL["🌐 Control Plane"]
+    subgraph EXTERNAL["🌐 Control Plane (External)"]
         direction LR
-        UI["🖥️ Next.js Dashboard<br/><i>Real-time findings</i>"]
-        API["⚡ FastAPI Interface<br/><i>:8000 — REST + WS</i>"]
+        UI["🖥️ Next.js Dashboard<br/><i>Real-time findings UI</i>"]
+        API["⚡ FastAPI Interface<br/><i>:8000 — REST + WebSocket</i>"]
     end
 
-    subgraph ORCHESTRATION["⚙️ Orchestration Layer"]
+    subgraph ORCHESTRATION["⚙️ Orchestration Layer (Internal)"]
         direction LR
-        REDIS[("🔴 Redis Pub/Sub<br/><i>Event Bus</i>")]
-        RUST["🦀 Rust Task Scheduler<br/><i>Priority Queue</i>"]
-        DB[("🐘 PostgreSQL<br/><i>Audit Store</i>")]
+        REDIS[("🔴 Redis Pub/Sub<br/><i>Event Bus :6379</i>")]
+        RUST["🦀 Rust Task Scheduler<br/><i>Async priority queue</i>"]
+        DB[("🐘 PostgreSQL<br/><i>Audit Store :5432</i>")]
     end
 
-    subgraph AGENTS["🧠 Agentic Execution"]
+    subgraph AGENTS["🧠 Agentic Execution Layer"]
         direction TB
-        PLANNER["🎯 Planner Agent<br/><i>Mission → DAG</i>"]
-        WEB3["🕸️ Web3 Auditor<br/><i>Contract Scanner</i>"]
+        PLANNER["🎯 Planner Agent<br/><i>Mission → Task DAG</i>"]
+        WEB3["🕸️ Web3 Auditor<br/><i>Contract Red-Flag Scanner</i>"]
         VALIDATOR["🔬 Validator Agent<br/><i>PoC Verifier</i>"]
     end
 
     subgraph RECON["🔍 Go Recon Engine"]
         direction TB
-        CRAWL["🕷️ Crawler<br/><i>Discovery</i>"]
+        CRAWL["🕷️ Crawler<br/><i>Endpoint discovery</i>"]
         SUB["🌐 Subdomain Enum<br/><i>DNS Brute</i>"]
     end
 
@@ -139,26 +141,26 @@ sequenceDiagram
     participant Filter as 🦾 Neural Filter
     participant DB as 🐘 PostgreSQL
 
-    Operator->>CLI: ./secagent scan -t target.com
-    CLI->>Planner: Initialize mission
+    Operator->>CLI: ./secagent scan --target airbnb.com
+    CLI->>Planner: Initialize mission: target=airbnb.com
 
     rect rgb(26, 26, 46)
         Note over Planner,Recon: PHASE 1 — RECONNAISSANCE
-        Planner->>Recon: Enumerate subdomains & endpoints
-        Recon-->>Planner: Tech stack & attack surface map
+        Planner->>Recon: Enumerate subdomains, endpoints, banners
+        Recon-->>Planner: Tech Fingerprint (React 18, Go 1.21, PostgreSQL)
     end
 
     rect rgb(15, 52, 96)
         Note over Planner,Scanners: PHASE 2 — TARGETED SCANNING
-        Planner->>Scanners: Dispatch parallel tasks (SQLi, SSRF, IDOR)
-        Scanners-->>Planner: Raw finding stream
+        Planner->>Scanners: Dispatch parallel tasks (SQLi, IDOR, Web3)
+        Scanners-->>Planner: Raw finding stream (unvalidated)
     end
 
     rect rgb(83, 52, 131)
         Note over Planner,Filter: PHASE 3 — NEURAL VALIDATION
         Planner->>Filter: Request consensus on findings
         Filter->>Scanners: Execute deterministic PoCs
-        Scanners-->>Filter: Proof signals captured
+        Scanners-->>Filter: Capture proof signals
         Filter-->>Planner: Validated findings (Confidence > 0.7)
     end
 
@@ -170,96 +172,183 @@ sequenceDiagram
 
 ### 3. Agent Architecture — Internal Decision Logic
 
-How a specialist agent reasons through a vulnerability:
-
 ```mermaid
 flowchart TD
-    START(["🎯 Task Received"]) --> CLASSIFY["🧠 LLM Intent Classifier"]
-    CLASSIFY --> PAYLOAD["⚙️ Payload Generator"]
-    PAYLOAD --> PROBE["🔌 HTTP Probe (Go)"]
-    PROBE --> RESPONSE{"📡 Response Analyser"}
+    START(["🎯 Task Received"]) --> CLASSIFY["🧠 LLM Intent Classifier\n<i>Identify vuln type + attack vector</i>"]
+    CLASSIFY --> PAYLOAD["⚙️ Payload Generator\n<i>Generate context-aware payloads</i>"]
+    PAYLOAD --> PROBE["🔌 HTTP Probe (Go)\n<i>Send concurrent test requests</i>"]
+    PROBE --> RESPONSE{"📡 Response Analyser\n<i>Anomaly detected?</i>"}
     
-    RESPONSE -- "❌ No anomaly" --> ADJUST["🔄 Adjust Strategy"]
+    RESPONSE -- "❌ No anomaly" --> ADJUST["🔄 Adjust Strategy\n<i>Try alternate payload</i>"]
     ADJUST --> PAYLOAD
     
-    RESPONSE -- "✅ Anomaly" --> POC["🎯 PoC Generator"]
-    POC --> VERIFY["🔬 Execution Verifier"]
+    RESPONSE -- "✅ Anomaly" --> POC["🎯 PoC Generator\n<i>Craft deterministic Python/cURL</i>"]
+    POC --> VERIFY["🔬 Execution Verifier\n<i>Capture proof signal</i>"]
     VERIFY --> CONFIRMED{"✅ Proof Confirmed?"}
     
-    CONFIRMED -- "✅ Yes" --> FINDING(["🔴 VALIDATED FINDING"])
-    CONFIRMED -- "❌ No" --> FALSE_POS(["⬜ FALSE POSITIVE"])
+    CONFIRMED -- "✅ Yes" --> FINDING(["🔴 VALIDATED FINDING\n<i>Persisted with PoC</i>"])
+    CONFIRMED -- "❌ No" --> FALSE_POS(["⬜ FALSE POSITIVE\n<i>Discard signal</i>"])
 ```
 
 ---
 
 ## ⚡ Quick Start
 
-Get SecAgent running in under 5 minutes with the automated deployment engine.
+Deploy and execute your first mission in under 5 minutes.
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/gl1tch0x1/cog-ai.git
 cd cog-ai
 
-# 2. Deploy the Arsenal
+# 2. Deploy the Arsenal (Automated Installer)
 python3 installer.py
 
-# 3. Execute your first mission
+# 3. Execute Mission
 ./secagent scan --target example.com --depth quick
 ```
 
 ---
 
-## 🛠️ Installation Guide
+## 🛠️ Installation Universe
 
 ### Prerequisites
-- **Python 3.11+**
-- **Docker & Compose** (v2 recommended)
-- **Rust** (Required for Python 3.13 dependency builds)
-- **At least one LLM API Key** (OpenAI, Anthropic, or Groq)
+- **Python 3.11+**: Core agent runtime.
+- **Docker & Compose**: For service isolation.
+- **Rust**: Required for building high-performance dependencies (e.g., `pydantic-core`).
+- **Git**: For framework synchronization.
 
-### Method 1 — Automated (Recommended)
-The `installer.py` handles venv creation, binary pre-loading, and API ignition autonomously.
+---
+
+### Method 1 — Automated Deployment (Recommended)
+The most robust path. The installer autonomously handles virtual environments, binary pre-loading, and API ignition.
+
 ```bash
 python3 installer.py
 ```
+**What happens?**
+1.  **Preflight**: Verifies Python, Rust, and tool binaries.
+2.  **Hardening**: Creates isolated `.venv` and upgrades deployment tools.
+3.  **Arming**: Pre-installs critical binaries (`pydantic`, `rich`, `httpx`) and mounts framework modules.
+4.  **Intel**: Generates cryptographically secure keys in `.env`.
+5.  **Entrypoints**: Deploys `./secagent` and `secagent.bat`.
+6.  **Ignition**: Starts the API Control Plane on Port 8000.
 
-### Method 2 — Docker Stack
-Runs the full polyglot stack in isolated containers.
+---
+
+### Method 2 — Docker Fortress (Isolated)
+Full polyglot stack in isolated containers. Best for production stability.
+
 ```bash
 python3 installer.py --docker
 ```
+**Services Deployed:**
+- **PostgreSQL**: Findings & audit store.
+- **Redis**: High-speed task queue.
+- **Go-Recon**: High-performance discovery engine.
+- **FastAPI**: Central Control Plane.
+- **Next.js**: Visual Intelligence Dashboard.
 
 ---
 
-## ⚙️ Configuration
+### Method 3 — Manual Deployment (Advanced)
+For researchers who require granular control over each component.
 
-Edit the generated `.env` file to set your operational parameters:
+**1. Database & Queue Setup**
+Ensure PostgreSQL (15+) and Redis (7+) are running on your host.
 
-```ini
-# LLM Providers
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
+**2. Virtual Environment**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+```
 
-# Scope Control (STRICT WHITELIST)
-ALLOWED_DOMAINS=example.com,*.example.com
+**3. Module Installation**
+```bash
+# Core Agents
+pip install -e ./python-agents[dev,browser]
+# API Server
+pip install -e ./api[dev]
+```
 
-# Performance
-MAX_CONCURRENT_AGENTS=8
+**4. Recon Engine Build**
+```bash
+cd go-services
+go build -o ../recon-service ./cli/cmd/main.go
+```
+
+**5. Database Migration**
+```bash
+cd api
+alembic upgrade head
 ```
 
 ---
 
-## 🎯 Running Your First Mission
+## ⚙️ Operational Intelligence (Configuration)
 
-Use the `./secagent` entrypoint to ensure the virtual environment is automatically activated.
+### The Manifest (`.env`) — Detailed Parameters
 
-| Command | Action |
-|---------|--------|
-| `./secagent scan` | Initiates autonomous offensive pipeline |
-| `./secagent vault` | Audits operational secret integrity |
-| `./secagent keyhacks` | Scans local assets for credential leaks |
-| `./secagent update` | Synchronizes framework with latest intelligence |
+| Variable | Type | Description |
+|----------|------|-------------|
+| `DB_PASSWORD` | Secret | Randomly generated password for PostgreSQL. |
+| `DATABASE_URL` | URI | Connection string for findings persistence. |
+| `REDIS_URL` | URI | Task queue bus for agent coordination. |
+| `JWT_SECRET` | Secret | Used for securing API control-plane access. |
+| `ALLOWED_DOMAINS` | List | **STRICT WHITELIST**. Only these domains can be scanned. |
+| `OPENAI_API_KEY` | Key | Primary reasoning engine for GPT-4o. |
+| `ANTHROPIC_API_KEY` | Key | Primary engine for deep exploit reasoning (Claude 3.5). |
+| `GROQ_API_KEY` | Key | Low-latency engine for fast recon triage. |
+| `MAX_CONCURRENT_AGENTS` | Int | Parallel workers for the agent swarm (Default: 4). |
+
+### Scope Control Enforcement
+SecAgent is **Fail-Closed**. Every mission is checked against `ALLOWED_DOMAINS` in your `.env`.
+```ini
+ALLOWED_DOMAINS=example.com,*.example.com,target-org.org
+```
+*Requests outside this scope are terminated before any probing occurs.*
+
+---
+
+## 🎯 Mission Operations (Usage)
+
+### 1. Autonomous Scan
+Initiate the full offensive pipeline using the elite entrypoint.
+```bash
+./secagent scan --target airbnb.com --depth standard --workers 8
+```
+**Flags:**
+- `--depth`: `quick` (fast recon), `standard` (full audit), `deep` (exploit chaining).
+- `--workers`: Number of parallel specialist agents.
+- `--no-sandbox`: Bypasses Docker isolation (not recommended).
+- `--results-dir`: Custom path for breach reports.
+
+### 2. Operational Vault
+Manage and validate your secret manifest.
+```bash
+./secagent vault --validate
+```
+*Performs live connectivity checks for all LLM providers and database uplinks.*
+
+### 3. Intelligence Recall (Update)
+Synchronize the framework with the latest intelligence from origin.
+```bash
+./secagent update
+```
+**Robust Recovery:** If local conflicts are detected, the utility offers a **Hard Reset** path to restore framework integrity autonomously.
+
+---
+
+## 🛡️ The Specialist Agents
+
+SecAgent coordinates a swarm of highly focused agents, each optimized for a specific bug class.
+
+1.  **ReconAgent**: High-speed discovery. Uses Go to map subdomains, endpoints, and technology fingerprints.
+2.  **WebSecurityAgent**: Advanced Web2 specialist. Covers XSS, SQLi, SSRF (11 bypasses), LFI, and RCE.
+3.  **APISecurityAgent**: API specialist. Audits BOLA/IDOR (V1-V8), JWT, GraphQL, MFA, and SAML.
+4.  **Web3SecurityAgent**: Smart contract auditor. 50+ patterns for EVM and Solana (Rug-pull vectors).
+5.  **ValidatorAgent**: The Neural Filter. Executes deterministic PoCs to confirm/discard findings.
+6.  **ReportAgent**: Impact-first delivery. Generates executive summaries and CVSS 4.0 calculations.
 
 ---
 
@@ -267,28 +356,38 @@ Use the `./secagent` entrypoint to ensure the virtual environment is automatical
 
 ```
 cog-ai/
-├── api/                # FastAPI REST control-plane
-├── python-agents/      # Core AI Agent system (SecAgents)
+├── api/                # FastAPI REST Control Plane
+├── python-agents/      # Core AI Agent System (SecAgents)
 │   └── secagents/
-│       ├── agents/     # Specialist agent definitions
-│       └── pipeline/   # End-to-end mission runner
-├── go-services/        # High-performance Recon engine
-├── rust-core/          # Task scheduler (Tokio)
-├── wordlists/          # Curated offensive security lists
-├── installer.py        # Elite deployment engine
-├── update.py           # Intelligence recall utility
-└── secagent            # Auto-activation entrypoint
+│       ├── agents/     # Specialist Agent Definitions
+│       ├── pipeline/   # End-to-End Mission Runner
+│       └── prompts/    # Cognitive Decision Framework
+├── go-services/        # High-Performance Recon Engine (Go)
+├── rust-core/          # Async Task Scheduler (Tokio)
+├── wordlists/          # 500KB+ Curated Offensive Security Lists
+├── installer.py        # Elite Zero-Interaction Deployment Engine
+├── update.py           # Intelligence Recall & Sync Utility
+├── secagent            # Linux/macOS Auto-Activation Entrypoint
+└── secagent.bat        # Windows Auto-Activation Entrypoint
 ```
 
 ---
 
-## 🤝 Contributing
+## 🔍 Field Troubleshooting
 
-Contributions to the reasoning engine or specialist agents are welcome.
+**1. Port 8000 Already in Use**
+The `installer.py` now includes an **Automatic Port Cleanup** feature. If Port 8000 is busy, it will attempt to terminate the stale process using `fuser` (Unix) or `taskkill` (Windows).
 
+**2. Module Not Found: secagents**
+This occurs when running with system Python instead of the virtual environment. **Always use the entrypoint**:
 ```bash
-# Run integrity tests
-./secagent test
+./secagent scan ...
+```
+
+**3. Synchronization Collapsed (Git Conflict)**
+Run the force-synchronize command to align your local environment:
+```bash
+./secagent update --force  # Or: git fetch origin && git reset --hard origin/main
 ```
 
 ---
@@ -303,6 +402,6 @@ Contributions to the reasoning engine or specialist agents are welcome.
 
 ---
 
-[Report a Bug](https://github.com/gl1tch0x1/cog-ai/issues) · [Request a Feature](https://github.com/gl1tch0x1/cog-ai/issues)
+[Report a Bug](https://github.com/gl1tch0x1/cog-ai/issues) · [Request a Feature](https://github.com/gl1tch0x1/cog-ai/issues) · [Security Policy](SECURITY.md)
 
 </div>
