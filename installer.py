@@ -172,7 +172,7 @@ def install_arsenal(args: argparse.Namespace) -> bool:
     ui.update_log("Arming the offensive arsenal...")
     
     # Critical binaries
-    deps = ["pydantic>=2.0.0", "pydantic-core>=2.0.0", "rich", "typer", "pytest-cov", "httpx"]
+    deps = ["pydantic>=2.0.0", "pydantic-core>=2.0.0", "rich", "typer", "pytest-cov", "httpx", "python-multipart"]
     for dep in deps:
         ui.update_log(f"Loading {dep} binary...")
         run_cmd([PIP_EXEC, "install", "--only-binary", ":all:", dep, "--quiet"])
