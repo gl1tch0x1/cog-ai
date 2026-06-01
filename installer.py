@@ -69,9 +69,11 @@ VENV_DIR    = ROOT / ".venv"
 PYTHON_AGENTS = ROOT / "python-agents"
 API_DIR     = ROOT / "api"
 ENV_FILE    = ROOT / ".env"
+MIGRATION   = ROOT / "api" / "migrations" / "001_initial.sql"
 
 PYTHON_EXEC = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("python.exe" if IS_WIN else "python"))
 PIP_EXEC    = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("pip.exe" if IS_WIN else "pip"))
+PYTEST_EXEC = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("pytest.exe" if IS_WIN else "pytest"))
 
 # ─── Execution Logic ──────────────────────────────────────────────────────────
 _step = 0
@@ -96,9 +98,9 @@ def fail(msg: str) -> None:
 def info(msg: str) -> None:
     print(f"  {PRE_INFO} {c(CYAN, msg)}")
 
-def run(cmd: list[str], cwd: Optional[Path] = None, capture: bool = True) -> subprocess.CompletedProcess:
+def run(cmd: list[str], cwd: Optional[Path] = None, capture: bool = True, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(
-        cmd, cwd=str(cwd) if cwd else None, capture_output=capture, text=True, check=True
+        cmd, cwd=str(cwd) if cwd else None, capture_output=capture, text=True, check=check
     )
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -127,10 +129,14 @@ def run_preflight(args: argparse.Namespace) -> bool:
     except: pass
 
     # Tools Check
-    for tool, name in [("git", "Git"), ("docker", "Docker Engine"), ("node", "Node.js")]:
+    for tool, name in [("git", "Git"), ("docker", "Docker Engine"), ("node", "Node.js"), ("rustc", "Rust Compiler")]:
         path = shutil.which(tool)
         if path: ok(f"Binary: {name} detected at {path}")
-        else: warn(f"Binary: {name} not found in PATH")
+        else: 
+            if tool == "rustc":
+                warn(f"Binary: {name} not found. Some Python packages may fail to build from source.")
+            else:
+                warn(f"Binary: {name} not found in PATH")
 
     # Network
     try:
@@ -161,7 +167,7 @@ def deploy_environment() -> bool:
     except: pass
     return True
 
-def install_arsenal() -> bool:
+def install_arsenal(args: argparse.Namespace) -> bool:
     step("Arming The Arsenal")
     
     packages = [
@@ -173,16 +179,31 @@ def install_arsenal() -> bool:
         if not path.exists(): continue
         info(f"Loading {name} modules...")
         try:
-            run([PIP_EXEC, "install", "-e", extras], cwd=path)
+            # We use --prefer-binary to avoid building from source (which requires Rust)
+            # especially if we are just running the Docker stack.
+            run([PIP_EXEC, "install", "--prefer-binary", "-e", extras], cwd=path)
             ok(f"{name} armed and ready.")
         except subprocess.CalledProcessError as e:
-            fail(f"Module load failed: {e.stderr[:200] if e.stderr else e}")
-            return False
+            stderr = e.stderr or ""
+            if "pydantic-core" in stderr and "Rust" in stderr:
+                msg = f"{name} failed to install: pydantic-core requires Rust to build."
+                if args.docker:
+                    warn(f"{msg} (Non-fatal in Docker mode, continuing...)")
+                else:
+                    fail(f"{msg} Hint: Install Rust (https://rustup.rs/) or use --docker.")
+                    return False
+            else:
+                msg = f"Module load failed: {stderr[:200] if stderr else e}"
+                if args.docker:
+                    warn(f"{msg} (Non-fatal in Docker mode, continuing...)")
+                else:
+                    fail(msg)
+                    return False
 
     info("Installing telemetry and UI enhancements (rich, typer)...")
     try:
-        run([PIP_EXEC, "install", "rich", "typer", "--quiet"])
-        ok("UI enhancements loaded.")
+        run([PIP_EXEC, "install", "rich", "typer", "pytest-cov", "--quiet"])
+        ok("UI enhancements and test plugins loaded.")
     except: pass
     return True
 
@@ -211,6 +232,58 @@ ANTHROPIC_API_KEY=sk-ant-...
     info("REMINDER: Inject your API keys into .env before mission start.")
     return True
 
+def start_docker_stack(args: argparse.Namespace) -> bool:
+    step("Deploying Docker Operations")
+    
+    docker_bin = shutil.which("docker")
+    if not docker_bin:
+        fail("Docker Engine not found. Operation scrubbed.")
+        return False
+
+    # Check for docker compose
+    compose_cmd = ["docker", "compose"]
+    try:
+        run(["docker", "compose", "version"], capture=True)
+    except:
+        if shutil.which("docker-compose"):
+            compose_cmd = ["docker-compose"]
+        else:
+            fail("Docker Compose not found. Operation scrubbed.")
+            return False
+
+    info("Igniting Docker containers and building images...")
+    try:
+        # Use longer timeout for build
+        subprocess.run(compose_cmd + ["up", "-d", "--build"], cwd=ROOT, check=True)
+        ok("Docker operational stack is hot.")
+    except Exception as e:
+        fail(f"Docker ignition failure: {e}")
+        return False
+
+    return True
+
+def run_tests(args: argparse.Namespace) -> bool:
+    step("Operational Integrity Tests")
+    
+    if not Path(PYTEST_EXEC).exists():
+        warn("Test runner not found in tunnel. Skipping.")
+        return True
+
+    info("Executing unit tests...")
+    try:
+        # We try to run with coverage, but fallback if it fails
+        cmd = [PYTEST_EXEC, "tests/unit/", "-v", "--tb=short"]
+        result = run(cmd, cwd=ROOT, check=False)
+        if result.returncode == 0:
+            ok("Integrity check passed.")
+            return True
+        else:
+            warn("Some operational checks failed.")
+            return False
+    except Exception as e:
+        warn(f"Test sequence error: {e}")
+        return False
+
 def print_mission_briefing(success: bool) -> None:
     print("\n" + c(MAGENTA, "━" * 65))
     if success:
@@ -235,31 +308,37 @@ def main() -> int:
     print(c(BOLD+GREEN, BANNER))
     
     parser = argparse.ArgumentParser()
+    parser.add_argument("--docker", action="store_true", help="Deploy with Docker stack")
+    parser.add_argument("--no-test", action="store_true", help="Skip integrity tests")
     parser.add_argument("--ci", action="store_true")
     args = parser.parse_args()
 
     phases = [
-        run_preflight,
-        deploy_environment,
-        install_arsenal,
-        configure_intel
+        ("Preflight", lambda: run_preflight(args)),
+        ("Environment", deploy_environment),
+        ("Arsenal", lambda: install_arsenal(args)),
+        ("Intel", configure_intel)
     ]
 
+    if args.docker:
+        phases.append(("Docker", lambda: start_docker_stack(args)))
+
+    if not args.no_test:
+        phases.append(("Tests", lambda: run_tests(args)))
+
     success = True
-    for phase in phases:
+    for name, phase in phases:
         try:
-            if phase == run_preflight:
-                if not phase(args):
-                    success = False; break
-            else:
-                if not phase(): success = False
+            if not phase(): 
+                success = False
+                if not args.docker: break # Fail fast if not in docker mode
         except KeyboardInterrupt:
             print(f"\n{c(RED, 'Aborted.')}"); return 130
         except Exception as e:
-            fail(f"Phase crash: {e}"); success = False
+            fail(f"Phase {name} crash: {e}"); success = False
 
     print_mission_briefing(success and not _errors)
-    return 0 if success else 1
+    return 0 if (success and not _errors) else 1
 
 if __name__ == "__main__":
     sys.exit(main())
