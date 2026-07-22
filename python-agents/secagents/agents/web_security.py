@@ -1,6 +1,8 @@
 """Web security agent for vulnerability scanning."""
 
+import asyncio
 import logging
+import os
 import re
 import time
 from typing import Optional
@@ -200,7 +202,8 @@ class WebSecurityAgent(BaseAgent):
     @property
     def client(self) -> httpx.AsyncClient:
         if self._client is None:
-            self._client = httpx.AsyncClient(timeout=10.0, follow_redirects=True, verify=False)
+            verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
+            self._client = httpx.AsyncClient(timeout=10.0, follow_redirects=True, verify=verify_ssl)
         return self._client
 
     def base_system_prompt(self) -> str:
@@ -266,15 +269,22 @@ class WebSecurityAgent(BaseAgent):
     async def _test_endpoints(
         self, endpoints: list[str], vuln_types: list[str], target: str
     ) -> list[dict]:
-        """Test multiple endpoints for vulnerabilities."""
+        """Test multiple endpoints for vulnerabilities concurrently."""
         findings = []
+        sem = asyncio.Semaphore(10)
 
-        for endpoint in endpoints:
-            for vuln_type in vuln_types:
-                finding = await self._test(endpoint, vuln_type, target)
-                if finding:
-                    findings.append(finding)
+        async def _test_worker(endpoint: str, vuln_type: str):
+            async with sem:
+                res = await self._test(endpoint, vuln_type, target)
+                if res:
+                    findings.append(res)
 
+        tasks = [
+            _test_worker(endpoint, vuln_type)
+            for endpoint in endpoints
+            for vuln_type in vuln_types
+        ]
+        await asyncio.gather(*tasks, return_exceptions=True)
         return findings
 
     async def _test(self, endpoint: str, vuln_type: str, target: str) -> Optional[dict]:

@@ -133,12 +133,15 @@ class CVEScanner:
         return alive
 
     async def _phase_attack(self, urls: list[str]) -> None:
-        """Run checks against all alive URLs with worker pool."""
-        tasks = [self._scan_url(url) for url in urls]
-        await asyncio.gather(*tasks)
+        """Run checks against all alive URLs with worker pool and shared client."""
+        async with httpx.AsyncClient(
+            verify=self.config.verify_ssl, timeout=self.config.timeout, follow_redirects=True
+        ) as client:
+            tasks = [self._scan_url(client, url) for url in urls]
+            await asyncio.gather(*tasks)
 
-    async def _scan_url(self, url: str) -> None:
-        """Run appropriate checks against a single URL."""
+    async def _scan_url(self, client: httpx.AsyncClient, url: str) -> None:
+        """Run appropriate checks against a single URL using shared client."""
         async with self._sem:
             checks = get_checks_for_url(url)
 
@@ -146,13 +149,10 @@ class CVEScanner:
             if self.config.checks:
                 checks = [c for c in checks if c.key in self.config.checks]
 
-            async with httpx.AsyncClient(
-                verify=self.config.verify_ssl, timeout=self.config.timeout, follow_redirects=True
-            ) as client:
-                for check in checks:
-                    result = await self._run_check(client, url, check)
-                    if result and result.vulnerable:
-                        self.progress.findings.append(result)
+            for check in checks:
+                result = await self._run_check(client, url, check)
+                if result and result.vulnerable:
+                    self.progress.findings.append(result)
 
             self.progress.processed += 1
 

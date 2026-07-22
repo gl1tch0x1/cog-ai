@@ -302,7 +302,7 @@ async def cmd_vault(args: argparse.Namespace) -> int:
                 )
             )
         )
-        table.add_row(r.name, status_text, r.masked_value)
+        table.add_row(r.name, status_text, r.masked)
 
     console.print(table)
     return 0

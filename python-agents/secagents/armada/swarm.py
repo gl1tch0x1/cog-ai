@@ -64,8 +64,8 @@ class ArmadaOrchestrator:
             if routed and routed in self._specialists:
                 task.agent = routed
             elif task.agent not in self._specialists:
-                # Fallback: keep existing agent if registered, else use first available
-                task.agent = next(iter(self._specialists), task.agent)
+                # Fallback: use agent if registered, else use first available specialist
+                task.agent = task.agent if task.agent in self._specialists else next(iter(self._specialists), "port_scan")
         return graph
 
     def hire_specialists(self, graph: ExecutionGraph) -> list[AgentSpec]:
@@ -75,21 +75,29 @@ class ArmadaOrchestrator:
 
     async def execute(self, graph: ExecutionGraph, context: dict) -> dict:
         """Execute DAG with worker pool parallelism."""
+        from secagents.core.orchestrator import TaskState
+
         results: dict[str, Any] = {"tasks": {}, "findings": []}
         sem = asyncio.Semaphore(self.workers)
 
-        async def run_task(task_id: str, agent: str, action: str) -> None:
+        async def run_task(task_obj: Any) -> None:
             async with sem:
-                handler = self._handlers.get(agent)
-                if handler:
-                    out = await handler(context=context, action=action)
-                else:
-                    out = {"status": "skipped", "agent": agent, "reason": "no handler registered"}
-                results["tasks"][task_id] = out
+                task_obj.state = TaskState.RUNNING
+                handler = self._handlers.get(task_obj.agent)
+                try:
+                    if handler:
+                        out = await handler(context=context, action=task_obj.action)
+                        task_obj.state = TaskState.DONE
+                    else:
+                        out = {"status": "skipped", "agent": task_obj.agent, "reason": "no handler registered"}
+                        task_obj.state = TaskState.FAILED
+                except Exception as exc:
+                    out = {"status": "failed", "agent": task_obj.agent, "error": str(exc)}
+                    task_obj.state = TaskState.FAILED
+
+                results["tasks"][task_obj.id] = out
                 if isinstance(out, dict) and "findings" in out:
                     results["findings"].extend(out["findings"])
-
-        from secagents.core.orchestrator import TaskState
 
         max_rounds = len(graph.tasks) + 5
         rounds = 0
@@ -101,9 +109,7 @@ class ArmadaOrchestrator:
                 for t in pending:
                     t.state = TaskState.FAILED
                 break
-            await asyncio.gather(*[run_task(t.id, t.agent, t.action) for t in ready])
-            for t in ready:
-                t.state = TaskState.DONE
+            await asyncio.gather(*[run_task(t) for t in ready])
             rounds += 1
 
         return results

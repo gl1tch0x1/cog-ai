@@ -76,11 +76,8 @@ class RateLimiter:
         return bucket.status() if bucket else {"error": "unknown provider"}
 
 
-_instance: RateLimiter | None = None
+_instance: RateLimiter = RateLimiter()
 
 
 def get_rate_limiter() -> RateLimiter:
-    global _instance
-    if _instance is None:
-        _instance = RateLimiter()
     return _instance

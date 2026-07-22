@@ -235,5 +235,11 @@ class OmniLLM:
     async def aclose(self) -> None:
         await self._client.aclose()
 
+    async def __aenter__(self) -> OmniLLM:
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.aclose()
+
     def masked_providers(self) -> list[str]:
         return [f"{p.name}:{mask_secret(p.api_key)}" for p in self.providers]

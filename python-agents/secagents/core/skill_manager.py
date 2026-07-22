@@ -23,10 +23,10 @@ class SkillManager:
     def _load_all_skills(self):
         """Load all skills from SKILL.md files recursively."""
         try:
-            # 1. Load Root SKILL.md (Global)
+            pkg_root = Path(__file__).resolve().parent.parent.parent.parent
             root_paths = [
-                Path("SKILL.md"),
-                Path(__file__).parent.parent.parent.parent / "SKILL.md",
+                pkg_root / "SKILL.md",
+                Path("SKILL.md").resolve(),
             ]
 
             for path in root_paths:
@@ -36,12 +36,13 @@ class SkillManager:
                     break
 
             # 2. Load Modular Skills from skills/ directory
-            skills_dir = Path("skills")
-            if not skills_dir.exists():
-                # Try relative to package
-                skills_dir = Path(__file__).parent.parent.parent.parent / "skills"
+            skills_dirs = [
+                pkg_root / "skills",
+                Path("skills").resolve(),
+            ]
+            skills_dir = next((d for d in skills_dirs if d.exists()), None)
 
-            if skills_dir.exists():
+            if skills_dir and skills_dir.exists():
                 logger.info(f"SkillManager: Discovering modular skills in {skills_dir.absolute()}")
                 for skill_path in skills_dir.rglob("SKILL.md"):
                     skill_name = skill_path.parent.name

@@ -146,11 +146,15 @@ class AuthorizationError(SecAgentsException):
         super().__init__(message, "AUTHZ_ERROR", **context)
 
 
-class TimeoutError(SecAgentsException):
+class SecAgentTimeoutError(SecAgentsException):
     """Timeout error."""
 
     def __init__(self, message: str, timeout_sec: float = None, **context):
         super().__init__(message, "TIMEOUT_ERROR", timeout_seconds=timeout_sec, **context)
+
+
+# Alias to avoid shadowing builtin TimeoutError
+TimeoutErrorAlias = SecAgentTimeoutError
 
 
 class ConfigurationError(SecAgentsException):
@@ -211,7 +215,7 @@ __all__ = [
     "ValidationError",
     "AuthenticationError",
     "AuthorizationError",
-    "TimeoutError",
+    "SecAgentTimeoutError",
     "ConfigurationError",
     "ToolError",
     "CircuitBreakerError",

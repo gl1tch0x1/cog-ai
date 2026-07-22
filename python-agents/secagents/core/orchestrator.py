@@ -607,7 +607,6 @@ class Orchestrator:
                 if not should_retry:
                     task.output = {"error": str(e)}
                     task.state = TaskState.FAILED
-                    self._circuit_breakers[task.agent].record_failure()
                     break
 
         task.duration_ms = (time.time() - start) * 1000

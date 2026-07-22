@@ -249,6 +249,9 @@ def build_payloads(check_key: str, url: str) -> list[dict]:
         "oauth_redirect": [
             {"param": "redirect_uri", "value": f"https://{RUN_CANARY}.com", "method": "GET"},
         ],
+        "cors": [
+            {"header": "Origin", "value": f"https://{RUN_CANARY}.com", "method": "HEADER"},
+        ],
         "idor": [
             {"param": "user_id", "value": "1", "method": "GET"},
             {"param": "id", "value": "1", "method": "GET"},
@@ -298,10 +301,8 @@ def verify_finding(
         return False, ""
 
     elif check_key == "log4shell":
-        java_errors = ["javax.naming", "com.sun.jndi", "LDAP"]
-        for err in java_errors:
-            if err in response_body:
-                return True, f"JNDI/LDAP signature: {err}"
+        if RUN_CANARY in response_body or "jndi:ldap" in response_body.lower():
+            return True, f"Log4Shell payload reflection/interaction confirmed for {RUN_CANARY}"
         return False, ""
 
     elif check_key == "shellshock":
@@ -311,8 +312,11 @@ def verify_finding(
 
     elif check_key == "cors":
         acao = response_headers.get("access-control-allow-origin", "")
-        if acao == "*" or "evil.com" in acao:
-            return True, f"ACAO reflects arbitrary origin: {acao}"
+        acac = response_headers.get("access-control-allow-credentials", "")
+        if f"{RUN_CANARY}.com" in acao:
+            return True, f"ACAO reflects arbitrary origin: {acao} (Credentials: {acac})"
+        elif acao == "*" and acac == "true":
+            return True, "ACAO wildcard with credentials allowed"
         return False, ""
 
     elif check_key == "clickjacking":
@@ -446,12 +450,9 @@ def verify_finding(
         return False, ""
 
     elif check_key == "idor":
-        if (
-            "admin" in response_body.lower()
-            and "unauthorized" not in response_body.lower()
-            and payload.get("value") == "1"
-        ):
-            return True, "Accessed admin resource via IDOR"
+        if payload.get("value") in ["1", "0"] and response_headers.get("content-type", "").startswith("application/json"):
+            if any(k in response_body.lower() for k in ["\"email\":", "\"password_hash\":", "\"role\": \"admin\"", "\"is_admin\": true"]):
+                return True, f"IDOR resource returned sensitive user fields for id={payload.get('value')}"
         return False, ""
 
     return False, ""

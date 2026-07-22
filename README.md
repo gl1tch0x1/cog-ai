@@ -82,10 +82,11 @@ Built for:
 ##  Key Differentiators
 
 1. **Pure CLI-First Architecture**: No bloated web UI or complex database setup required. Designed for headless VPS execution, Docker containers, SSH sessions, and CI/CD pipelines.
-2. **Polyglot Performance Engine**: High-speed Go microservices for concurrent network probing, Rust for microsecond priority scheduling, and Python for LLM multi-agent reasoning.
-3. **Zero False-Positive Validation**: Integrated `CrucibleValidator` replays proof-of-concept payloads against target endpoints to verify vulnerabilities before reporting.
-4. **Hardware-Aware Local Fallback**: Automatically detects GPU/CPU capabilities to provision local Ollama models (`llama3`, `mistral`, `codellama`) when cloud APIs are unavailable.
-5. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains and agreement thresholding.
+2. **Polyglot Performance Engine**: High-speed Go microservices for concurrent network probing, Rust for microsecond priority scheduling, C++20 for SIMD regex signature matching, and Python for LLM multi-agent reasoning.
+3. **Zero False-Positive Live Validation**: Integrated `CrucibleValidator` replays proof-of-concept payloads with HTTP status code consistency & response hash variance checks against target endpoints.
+4. **Shared Connection Pooling & High Concurrency**: Connection-pooled `CVEScanner` and concurrent `WebSecurityAgent` scanning via `asyncio.Semaphore` task dispatching.
+5. **Hardware-Aware Local Fallback**: Automatically detects GPU/CPU capabilities to provision local Ollama models (`llama3`, `mistral`, `codellama`) when cloud APIs are unavailable.
+6. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains and agreement thresholding.
 
 ---
 
@@ -95,11 +96,11 @@ Built for:
 |--------|----------------|-------------------------|
 |  **Neural Swarm Orchestration** | `Orchestrator`, `ArmadaSwarm`, `TaskDAG` | Decomposes high-level objectives into directed acyclic execution graphs (DAGs) with retry and circuit breaker logic. |
 |  **Active Recon Engine** | `ReconAgent`, `GoRecon`, `httpx` Prober | Active subdomain resolution, TLS/header probing, HTML crawling, link extraction, and GET/POST parameter discovery. |
-|  **Web Security Scanner** | `WebSecurityAgent`, `CVEChecks` | 31+ vulnerability classes including SQLi, XSS, SSTI, LFI, RFI, SSRF, RCE, Command Injection, and Log4Shell. |
-|  **API Security Scanner** | `APISecurityAgent` | REST & GraphQL introspection, BOLA/IDOR detection, JWT algorithm manipulation (`none` alg), and CORS misconfigurations. |
+|  **Web Security Scanner** | `WebSecurityAgent`, `CVEChecks` | 31+ vulnerability classes including SQLi, XSS, SSTI, LFI, RFI, SSRF, RCE, Command Injection, Log4Shell (OAST/canary verified), and CORS. |
+|  **API Security Scanner** | `APISecurityAgent` | REST & GraphQL introspection, BOLA/IDOR detection (sensitive schema field evaluation), JWT algorithm manipulation (`none` alg), and CORS misconfigurations. |
+|  **12 Specialized Swarm Agents** | `specialized.py` | Functional AI swarm agents for intelligent tool selection, CTF challenge solving, exploit generation, vulnerability correlation, and rate-limit detection. |
 |  **Web3 & Contract Auditor** | `Web3SecurityAgent` | EVM & Solana smart contract security analysis for reentrancy, integer overflow, delegatecall vulnerabilities, and access control bypasses. |
-|  **AI Supply Chain Audits** | `PromptInjectionCheck` | Audits `.cursorrules`, `mcp.json`, system prompts, RAG data exfiltration vectors, and indirect prompt injections. |
-|  **PoC Verification** | `CrucibleValidator` | Replays generated exploit payloads in sandbox environments to ensure zero false positives. |
+|  **PoC Verification** | `CrucibleValidator` | Live HTTP request replay with multi-attempt consistency validation to eliminate false positives. |
 |  **Exploit Chain Correlation** | `ChainCorrelator` | Links isolated vulnerabilities into complete end-to-end multi-step exploit paths. |
 |  **Impact-First Reporting** | `ReportAgent` | Generates executive Markdown reports and machine-readable JSON artifacts. |
 

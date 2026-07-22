@@ -9,6 +9,10 @@ from secagents.modules.autopilot import Autopilot
 from secagents.modules.cve_scanner import CVEScanner, ScanConfig
 
 
+from secagents.agents.web_security import WebSecurityAgent
+from secagents.infra.scope import enforce_scope, ScopeViolationError
+
+
 def cve_result_to_finding(result) -> dict:
     sev = result.severity.value if hasattr(result.severity, "value") else str(result.severity)
     return {
@@ -42,12 +46,22 @@ def build_scan_handlers(
             target, {"depth": shared.get("depth", "standard"), "intel": shared.get("intel", {})}
         )
         await autopilot._phase_recon()
-        endpoints = autopilot.results.get("endpoints", [])
-        if not endpoints:
-            endpoints = [f"https://{target}", f"http://{target}"]
-        shared["endpoints"] = endpoints
+        raw_endpoints = autopilot.results.get("endpoints", [])
+        
+        # Enforce scope on all discovered endpoints
+        scoped_endpoints = []
+        for ep in raw_endpoints:
+            try:
+                enforce_scope(ep)
+                scoped_endpoints.append(ep)
+            except ScopeViolationError:
+                continue
+
+        if not scoped_endpoints:
+            scoped_endpoints = [f"https://{target}", f"http://{target}"]
+        shared["endpoints"] = scoped_endpoints
         shared["autopilot"] = autopilot
-        return {"endpoints": len(endpoints), "findings": []}
+        return {"endpoints": len(scoped_endpoints), "findings": []}
 
     async def scan_handler(*, context: dict, action: str, **_) -> dict:
         target = shared["target"]
@@ -76,8 +90,33 @@ def build_scan_handlers(
                 f.setdefault("source", "autopilot")
                 findings.append(f)
 
-        shared["raw_findings"] = findings
+        shared.setdefault("raw_findings", []).extend(findings)
         return {"findings": findings, "cve_count": len(progress.findings)}
+
+    async def specialized_vuln_handler(vuln_type: str, context: dict) -> dict:
+        target = shared["target"]
+        endpoints = shared.get("endpoints", [f"https://{target}"])
+        agent = WebSecurityAgent()
+        out = await agent.execute({
+            "target": f"https://{target}",
+            "endpoints": endpoints[:20],
+            "vuln_types": [vuln_type],
+        })
+        findings = out.result.get("findings", []) if isinstance(out.result, dict) else []
+        shared.setdefault("raw_findings", []).extend(findings)
+        return {"findings": findings, "vuln_type": vuln_type}
+
+    async def sqli_handler(*, context: dict, action: str, **_) -> dict:
+        return await specialized_vuln_handler("sqli", context)
+
+    async def xss_handler(*, context: dict, action: str, **_) -> dict:
+        return await specialized_vuln_handler("xss", context)
+
+    async def ssrf_handler(*, context: dict, action: str, **_) -> dict:
+        return await specialized_vuln_handler("ssrf", context)
+
+    async def idor_handler(*, context: dict, action: str, **_) -> dict:
+        return await specialized_vuln_handler("idor", context)
 
     async def validate_handler(*, context: dict, action: str, **_) -> dict:
         agent = ValidatorAgent()
@@ -94,9 +133,10 @@ def build_scan_handlers(
         "subdomain": recon_handler,
         "web_crawl": recon_handler,
         "port_scan": recon_handler,
-        "sqli": scan_handler,
-        "xss": scan_handler,
-        "ssrf": scan_handler,
-        "idor": scan_handler,
+        "sqli": sqli_handler,
+        "xss": xss_handler,
+        "ssrf": ssrf_handler,
+        "idor": idor_handler,
         "validator": validate_handler,
+        "universal_scan": scan_handler,
     }

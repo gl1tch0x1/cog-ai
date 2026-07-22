@@ -3,8 +3,10 @@ version: "3.9"
 services:
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-secagents_redis}"]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-secagents_redis}", "--appendonly", "yes"]
     ports: ["6379:6379"]
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-secagents_redis}", "ping"]
       interval: 5s
@@ -33,5 +35,8 @@ services:
       ALLOWED_DOMAINS: ${ALLOWED_DOMAINS:-example.com}
     depends_on:
       redis: { condition: service_healthy }
+
+volumes:
+  redis_data:
 
 

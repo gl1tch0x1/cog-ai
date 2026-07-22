@@ -189,12 +189,14 @@ class ScanPipeline:
         self.console.print(
             "[bold blue]󰋼[/bold blue] [white]Validating signals and correlating chains (The Crucible)...[/white]"
         )
-        crucible = CrucibleValidator(consensus=consensus)
-        validated = await crucible.validate_batch(unique)
-        self.results["findings"] = validated
-        self.results["chains"] = await crucible.correlate_chains(validated)
-        await crucible.aclose()
-        await llm.aclose()
+        try:
+            crucible = CrucibleValidator(consensus=consensus)
+            validated = await crucible.validate_batch(unique)
+            self.results["findings"] = validated
+            self.results["chains"] = await crucible.correlate_chains(validated)
+        finally:
+            await crucible.aclose()
+            await llm.aclose()
 
         registry = RegressionRegistry(self.results_dir / "regression")
         for f in validated:

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import re
 import httpx
 
@@ -154,8 +155,9 @@ class ReconAgent(BaseAgent):
                 if not probe_res.get("open", False):
                     return None
 
+            verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
             try:
-                async with httpx.AsyncClient(timeout=3.0, verify=False) as client:
+                async with httpx.AsyncClient(timeout=3.0, verify=verify_ssl) as client:
                     resp = await client.get(url)
                     return {
                         "type": "subdomain",
@@ -178,15 +180,6 @@ class ReconAgent(BaseAgent):
             if isinstance(res, dict) and res:
                 findings.append(res)
 
-        # Fallback to standard root host entry if no subdomains resolved
-        if not findings:
-            findings.append({
-                "type": "subdomain",
-                "value": f"www.{clean_target}",
-                "metadata": {"discovery_method": "fallback_resolution"},
-                "priority": "high",
-            })
-
         self.logger.info(f"Found {len(findings)} resolved subdomains")
         return {
             "action": "subdomain_enum",
@@ -200,11 +193,12 @@ class ReconAgent(BaseAgent):
         self.logger.info(f"Probing HTTP services for {target}")
         findings = []
         clean_target = target.replace("https://", "").replace("http://", "").rstrip("/")
+        verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
 
         for scheme in ["https", "http"]:
             url = f"{scheme}://{clean_target}"
             try:
-                async with httpx.AsyncClient(timeout=4.0, verify=False, follow_redirects=True) as client:
+                async with httpx.AsyncClient(timeout=4.0, verify=verify_ssl, follow_redirects=True) as client:
                     resp = await client.get(url)
                     server_header = resp.headers.get("server", "Unknown")
                     title_match = re.search(r"<title>(.*?)</title>", resp.text, re.IGNORECASE)
@@ -234,17 +228,15 @@ class ReconAgent(BaseAgent):
         self.logger.info(f"Crawling target: {target}")
         findings = []
         base_url = target if target.startswith("http") else f"https://{target}"
+        verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
 
         try:
-            async with httpx.AsyncClient(timeout=5.0, verify=False, follow_redirects=True) as client:
+            async with httpx.AsyncClient(timeout=5.0, verify=verify_ssl, follow_redirects=True) as client:
                 resp = await client.get(base_url)
                 if resp.status_code == 200:
                     # Extract links from href attributes
                     links = set(re.findall(r'href=["\'](/[^"\']+)["\']', resp.text))
-                    common_endpoints = {"/", "/login", "/admin", "/api", "/api/v1", "/swagger", "/health"}
-                    all_paths = links.union(common_endpoints)
-
-                    for path in list(all_paths)[:10]:
+                    for path in list(links)[:20]:
                         findings.append({
                             "type": "endpoint",
                             "path": path,
@@ -254,10 +246,6 @@ class ReconAgent(BaseAgent):
                         })
         except Exception as e:
             self.logger.warning(f"Crawl failed on {target}: {e}")
-            findings = [
-                {"type": "endpoint", "path": "/", "method": "GET", "status_code": 200, "priority": "high"},
-                {"type": "endpoint", "path": "/api", "method": "GET", "status_code": 200, "priority": "high"},
-            ]
 
         self.logger.info(f"Discovered {len(findings)} endpoints")
         return {
@@ -272,13 +260,14 @@ class ReconAgent(BaseAgent):
         self.logger.info(f"Discovering parameters for {target}")
         findings = []
         base_url = target if target.startswith("http") else f"https://{target}"
+        verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
 
         try:
-            async with httpx.AsyncClient(timeout=4.0, verify=False) as client:
+            async with httpx.AsyncClient(timeout=4.0, verify=verify_ssl) as client:
                 resp = await client.get(base_url)
                 # Find input names from HTML form fields
                 inputs = set(re.findall(r'<input[^>]+name=["\']([^"\']+)["\']', resp.text, re.IGNORECASE))
-                for param in list(inputs)[:5]:
+                for param in list(inputs)[:10]:
                     findings.append({
                         "type": "parameter",
                         "endpoint": base_url,
@@ -287,14 +276,8 @@ class ReconAgent(BaseAgent):
                         "location": "body",
                         "priority": "high",
                     })
-        except Exception:
-            pass
-
-        if not findings:
-            findings = [
-                {"type": "parameter", "endpoint": "/api", "parameter": "id", "method": "GET", "location": "query", "priority": "high"},
-                {"type": "parameter", "endpoint": "/api", "parameter": "q", "method": "GET", "location": "query", "priority": "medium"},
-            ]
+        except Exception as e:
+            self.logger.debug(f"Param discovery failed on {target}: {e}")
 
         self.logger.info(f"Discovered {len(findings)} request parameters")
         return {

@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+import os
+import httpx
 
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
 from secagents.prompts import VALIDATOR_PROMPT
@@ -187,72 +189,75 @@ class ValidatorAgent(BaseAgent):
             raise
 
     async def _replay_poc(self, finding: dict) -> dict:
-        """Replay the original PoC request.
+        """Replay the original PoC request against the live endpoint."""
+        poc_url = finding.get("poc_url") or finding.get("url", "")
+        proof_signal = finding.get("proof_signal") or finding.get("evidence", "")
+        verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
 
-        Args:
-            finding: Finding with PoC details
+        if not poc_url:
+            return {"valid": False, "reason": "No PoC URL provided"}
 
-        Returns:
-            Replay result
-        """
-        poc_url = finding.get("poc_url", "")
-
-        self.logger.info(f"Replaying PoC: {poc_url}")
+        self.logger.info(f"Replaying live PoC request to: {poc_url}")
 
         try:
-            # Simulate request replay
-            await asyncio.sleep(0.05)
+            async with httpx.AsyncClient(timeout=8.0, verify=verify_ssl, follow_redirects=True) as client:
+                method = finding.get("method", "GET").upper()
+                payload = finding.get("payload", "")
+                
+                if method == "POST":
+                    resp = await client.post(poc_url, data={"data": payload} if payload else None)
+                else:
+                    resp = await client.get(poc_url)
 
-            # Check for expected proof signal
-            proof_signal = finding.get("proof_signal", "")
-
-            if proof_signal:
-                # Verify proof signal is present
-                return {
-                    "valid": True,
-                    "proof_found": True,
-                    "proof_signal": proof_signal,
-                }
-            else:
-                # Generic validation
-                return {
-                    "valid": True,
-                    "proof_found": False,
-                    "reason": "PoC executed successfully",
-                }
+                body = resp.text
+                if proof_signal and proof_signal.lower() in body.lower():
+                    return {
+                        "valid": True,
+                        "proof_found": True,
+                        "proof_signal": proof_signal,
+                        "status_code": resp.status_code,
+                    }
+                elif resp.status_code < 500 and (finding.get("deterministic") or finding.get("validated")):
+                    return {
+                        "valid": True,
+                        "proof_found": False,
+                        "reason": f"Live HTTP {resp.status_code} response confirmed",
+                        "status_code": resp.status_code,
+                    }
+                else:
+                    return {
+                        "valid": False,
+                        "reason": f"Proof signal '{proof_signal}' not reflected in HTTP response ({resp.status_code})",
+                    }
         except Exception as e:
-            self.logger.error(f"PoC replay failed: {str(e)}")
-            return {
-                "valid": False,
-                "error": str(e),
-            }
+            self.logger.error(f"Live PoC replay failed: {str(e)}")
+            return {"valid": False, "error": str(e)}
 
     async def _test_consistency(self, finding: dict, poc_result: dict) -> dict:
-        """Test for consistent behavior on multiple runs.
-
-        Args:
-            finding: Finding to validate
-            poc_result: Result from initial PoC replay
-
-        Returns:
-            Consistency result
-        """
+        """Test for consistent live response behavior on multiple runs."""
+        poc_url = finding.get("poc_url") or finding.get("url", "")
+        verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
+        if not poc_url:
+            return {"consistent": False, "reason": "No URL"}
 
         try:
             results = []
+            async with httpx.AsyncClient(timeout=5.0, verify=verify_ssl, follow_redirects=True) as client:
+                for i in range(3):
+                    try:
+                        resp = await client.get(poc_url)
+                        results.append({"attempt": i + 1, "status": resp.status_code, "len": len(resp.text)})
+                    except Exception:
+                        results.append({"attempt": i + 1, "status": 0, "len": 0})
 
-            # Run PoC multiple times
-            for i in range(3):
-                await asyncio.sleep(0.02)
-                results.append({"attempt": i + 1, "success": True})
-
-            # Check if all attempts were consistent
-            consistent = all(r.get("success") for r in results)
+            # Check if majority of requests returned identical status codes
+            statuses = [r["status"] for r in results if r["status"] > 0]
+            consistent = len(statuses) >= 2 and len(set(statuses)) == 1
 
             return {
                 "consistent": consistent,
                 "attempts": len(results),
-                "success_rate": sum(1 for r in results if r["success"]) / len(results),
+                "success_rate": len(statuses) / 3.0,
             }
         except Exception as e:
             self.logger.error(f"Consistency test failed: {str(e)}")
