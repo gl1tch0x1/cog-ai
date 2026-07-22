@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import re
 from typing import Any, Dict, Optional
-from secagents.agents.base import BaseAgent, AgentOutput
 
+import httpx
 
-from secagents.agents.base import BaseAgent, AgentOutput, AgentConfig, AgentRole
+from secagents.agents.base import AgentConfig, AgentOutput, AgentRole, BaseAgent
 
 
 class BrowserAgent(BaseAgent):
@@ -24,8 +26,8 @@ class BrowserAgent(BaseAgent):
 
     async def execute(self, task: Dict[str, Any]) -> AgentOutput:
         """Execute headless browser automation and DOM extraction."""
-        target_url = task.get("target_url") or task.get("target", "")
-        if not target_url:
+        raw_url = task.get("target_url") or task.get("target", "")
+        if not raw_url:
             return AgentOutput(
                 agent=self.name,
                 role=self.role,
@@ -34,8 +36,13 @@ class BrowserAgent(BaseAgent):
                 error="No target_url specified",
             )
 
+        target_url = raw_url if raw_url.startswith(("http://", "https://")) else f"https://{raw_url}"
+
         self.logger.info(f"Navigating to {target_url} via Headless Browser Agent")
         analysis = await self._analyze_page(target_url)
+
+        is_failed = analysis.get("engine") == "failed"
+        confidence = 0.0 if is_failed else 0.9
 
         return AgentOutput(
             agent=self.name,
@@ -47,34 +54,49 @@ class BrowserAgent(BaseAgent):
                 "forms_detected": analysis.get("forms", []),
                 "security_headers": analysis.get("security_headers", {}),
                 "js_errors": analysis.get("js_errors", []),
-                "screenshot_captured": True,
+                "screenshot_captured": not is_failed,
+                "engine": analysis.get("engine", "unknown"),
             },
-            confidence=0.9,
+            confidence=confidence,
+            error=analysis.get("error") if is_failed else None,
         )
 
     async def _analyze_page(self, url: str) -> dict[str, Any]:
         """Inspect page structure, security headers, forms using Playwright or httpx fallback."""
         try:
-            from playwright.async_api import async_playwright
+            from playwright.async_api import async_playwright  # type: ignore[import-not-found,import-untyped]
+
             async with async_playwright() as p:
-                browser = await p.chromium.launch(headless=True)
-                page = await browser.new_page()
-                resp = await page.goto(url, timeout=10000)
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+                )
+                context = await browser.new_context(ignore_https_errors=True)
+                page = await context.new_page()
+
+                js_errors: list[str] = []
+                page.on("pageerror", lambda exc: js_errors.append(str(exc)))
+
+                resp = await page.goto(url, timeout=12000, wait_until="domcontentloaded")
                 title = await page.title()
                 dom_count = await page.evaluate("document.querySelectorAll('*').length")
                 forms = await page.evaluate("""
                     Array.from(document.querySelectorAll('form')).map(f => ({
                         action: f.getAttribute('action') || '',
                         method: (f.getAttribute('method') || 'GET').toUpperCase(),
-                        inputs: Array.from(f.querySelectorAll('input, select, textarea')).map(i => i.getAttribute('name') || '')
+                        inputs: Array.from(f.querySelectorAll('input, select, textarea'))
+                                    .map(i => i.getAttribute('name') || '')
+                                    .filter(Boolean)
                     }))
                 """)
-                headers = resp.headers if resp else {}
+                headers = dict(resp.headers) if resp else {}
                 await browser.close()
+
                 return {
-                    "title": title,
+                    "title": title or "SecAgent Inspected Page",
                     "dom_count": dom_count,
                     "forms": forms,
+                    "js_errors": js_errors,
                     "security_headers": {
                         "Content-Security-Policy": headers.get("content-security-policy", "missing"),
                         "X-Frame-Options": headers.get("x-frame-options", "missing"),
@@ -83,19 +105,30 @@ class BrowserAgent(BaseAgent):
                     "engine": "playwright-chromium",
                 }
         except Exception as e:
-            # Fallback to HTTP inspection
-            import httpx
-            import os
+            self.logger.debug(f"Playwright navigation failed for {url}, falling back to httpx: {e}")
             try:
-                formatted_url = url if url.startswith("http") else f"https://{url}"
                 verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
-                async with httpx.AsyncClient(timeout=5.0, verify=verify_ssl, follow_redirects=True) as client:
-                    resp = await client.get(formatted_url)
+                async with httpx.AsyncClient(timeout=6.0, verify=verify_ssl, follow_redirects=True) as client:
+                    resp = await client.get(url)
                     headers = dict(resp.headers)
+                    html = resp.text
+
+                    # Title extraction
+                    title_match = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
+                    page_title = title_match.group(1).strip() if title_match else headers.get("server", "SecAgent Target Host")
+
+                    # Form extraction via regex
+                    form_blocks = re.findall(r"<form[^>]*>(.*?)</form>", html, re.IGNORECASE | re.DOTALL)
+                    forms_extracted = []
+                    for block in form_blocks:
+                        inputs = re.findall(r'<input[^>]+name=["\']([^"\']+)["\']', block, re.IGNORECASE)
+                        forms_extracted.append({"action": "", "method": "GET", "inputs": inputs})
+
                     return {
-                        "title": resp.headers.get("server", "SecAgent Target Host"),
-                        "dom_count": resp.text.count("<"),
-                        "forms": [],
+                        "title": page_title,
+                        "dom_count": html.count("<"),
+                        "forms": forms_extracted,
+                        "js_errors": [],
                         "security_headers": {
                             "Content-Security-Policy": headers.get("content-security-policy", "missing"),
                             "X-Frame-Options": headers.get("x-frame-options", "missing"),
@@ -104,11 +137,13 @@ class BrowserAgent(BaseAgent):
                         "engine": "httpx-fallback",
                     }
             except Exception as err:
+                self.logger.warning(f"HTTP inspection fallback failed for {url}: {err}")
                 return {
                     "error": str(err),
                     "title": "Navigation Failed",
                     "dom_count": 0,
                     "forms": [],
+                    "js_errors": [],
                     "security_headers": {},
                     "engine": "failed",
                 }

@@ -83,10 +83,12 @@ Built for:
 
 1. **Pure CLI-First Architecture**: No bloated web UI or complex database setup required. Designed for headless VPS execution, Docker containers, SSH sessions, and CI/CD pipelines.
 2. **Polyglot Performance Engine**: High-speed Go microservices for concurrent network probing, Rust for microsecond priority scheduling, C++20 for SIMD regex signature matching, and Python for LLM multi-agent reasoning.
-3. **Zero False-Positive Live Validation**: Integrated `CrucibleValidator` replays proof-of-concept payloads with HTTP status code consistency & response hash variance checks against target endpoints.
+3. **Zero False-Positive Live Validation**: Integrated `CrucibleValidator` replays proof-of-concept payloads with HTTP status code consistency & response body variance checks against target endpoints.
 4. **Shared Connection Pooling & High Concurrency**: Connection-pooled `CVEScanner` and concurrent `WebSecurityAgent` scanning via `asyncio.Semaphore` task dispatching.
-5. **Hardware-Aware Local Fallback**: Automatically detects GPU/CPU capabilities to provision local Ollama models (`llama3`, `mistral`, `codellama`) when cloud APIs are unavailable.
-6. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains and agreement thresholding.
+5. **Headless Browser Inspection**: `BrowserAgent` automated Chrome DOM extraction & dynamic Playwright form parsing with fallback HTTP inspection.
+6. **Strict SSL/TLS Enforcement**: Environment-controlled dynamic SSL verification (`SECAGENT_VERIFY_SSL`) across all agent HTTP clients.
+7. **Hardware-Aware Local Fallback**: Automatically detects GPU/CPU capabilities to provision local Ollama models (`llama3`, `mistral`, `codellama`) when cloud APIs are unavailable.
+8. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains and agreement thresholding.
 
 ---
 
@@ -96,7 +98,8 @@ Built for:
 |--------|----------------|-------------------------|
 |  **Neural Swarm Orchestration** | `Orchestrator`, `ArmadaSwarm`, `TaskDAG` | Decomposes high-level objectives into directed acyclic execution graphs (DAGs) with retry and circuit breaker logic. |
 |  **Active Recon Engine** | `ReconAgent`, `GoRecon`, `httpx` Prober | Active subdomain resolution, TLS/header probing, HTML crawling, link extraction, and GET/POST parameter discovery. |
-|  **Web Security Scanner** | `WebSecurityAgent`, `CVEChecks` | 31+ vulnerability classes including SQLi, XSS, SSTI, LFI, RFI, SSRF, RCE, Command Injection, Log4Shell (OAST/canary verified), and CORS. |
+|  **Headless Browser Engine** | `BrowserAgent`, Playwright | Chromium DOM tree inspection, dynamic JS error tracking, and automated HTML form input extraction. |
+|  **Web Security Scanner** | `WebSecurityAgent`, `CVEChecks` | 31+ vulnerability classes including SQLi, XSS, SSTI, LFI, RFI, SSRF, RCE, Command Injection, Log4Shell, and multi-origin CORS checks. |
 |  **API Security Scanner** | `APISecurityAgent` | REST & GraphQL introspection, BOLA/IDOR detection (sensitive schema field evaluation), JWT algorithm manipulation (`none` alg), and CORS misconfigurations. |
 |  **12 Specialized Swarm Agents** | `specialized.py` | Functional AI swarm agents for intelligent tool selection, CTF challenge solving, exploit generation, vulnerability correlation, and rate-limit detection. |
 |  **Web3 & Contract Auditor** | `Web3SecurityAgent` | EVM & Solana smart contract security analysis for reentrancy, integer overflow, delegatecall vulnerabilities, and access control bypasses. |
