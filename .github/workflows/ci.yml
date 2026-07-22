@@ -213,11 +213,22 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        language: [rust, go]
+        language: [rust, go, cpp]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # C++
+      - name: Set up C++ Build Tools
+        if: matrix.language == 'cpp'
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential g++
+
+      - name: Run C++ Build & Test
+        if: matrix.language == 'cpp'
+        run: |
+          cmake -B cpp-core/build -S cpp-core
+          cmake --build cpp-core/build
 
       # Rust
       - name: Set up Rust

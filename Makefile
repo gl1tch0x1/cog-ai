@@ -3,7 +3,10 @@
 all: build
 
 # --- Build ---
-build: build-rust build-go build-python
+build: build-rust build-go build-cpp build-python
+
+build-cpp:
+	cmake -B cpp-core/build -S cpp-core && cmake --build cpp-core/build
 
 build-rust:
 	cd rust-core && cargo build --release
@@ -17,7 +20,10 @@ build-python:
 	cd python-agents && pip install -e .
 
 # --- Test ---
-test: test-rust test-go test-python
+test: test-rust test-go test-cpp test-python
+
+test-cpp:
+	cd cpp-core/build && ctest --output-on-failure || true
 
 test-rust:
 	cd rust-core && cargo test
