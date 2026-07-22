@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
+import logging
 from typing import Any, Callable, Awaitable
+
+logger = logging.getLogger(__name__)
 
 from secagents.core.orchestrator import Orchestrator, Intent, ExecutionGraph
 

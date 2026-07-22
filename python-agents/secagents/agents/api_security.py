@@ -249,23 +249,27 @@ class APISecurityAgent(BaseAgent):
 
     async def _test_cors(self, path: str, method: str, target: str) -> list[dict]:
         findings = []
-        origin = "https://evil.com"
-        resp = await self._send_api_request(
-            f"{target.rstrip('/')}/{path.lstrip('/')}", method, headers={"Origin": origin}
-        )
+        origins = ["https://evil.com", "null"]
 
-        if resp:
-            acao = resp.headers.get("Access-Control-Allow-Origin")
-            acac = resp.headers.get("Access-Control-Allow-Credentials")
-            if acao == origin and acac == "true":
-                findings.append(
-                    {
-                        "type": "cors_misconfig",
-                        "confidence": 0.95,
-                        "severity": "high",
-                        "cwe": "CWE-942",
-                    }
-                )
+        for origin in origins:
+            resp = await self._send_api_request(
+                f"{target.rstrip('/')}/{path.lstrip('/')}", method, headers={"Origin": origin}
+            )
+
+            if resp:
+                acao = resp.headers.get("Access-Control-Allow-Origin")
+                acac = resp.headers.get("Access-Control-Allow-Credentials")
+                if (acao == origin or acao == "null") and acac == "true":
+                    findings.append(
+                        {
+                            "type": "cors_misconfig",
+                            "origin_tested": origin,
+                            "confidence": 0.95,
+                            "severity": "high",
+                            "cwe": "CWE-942",
+                        }
+                    )
+                    break
         return findings
 
     async def _test_graphql(self, path: str, target: str) -> list[dict]:

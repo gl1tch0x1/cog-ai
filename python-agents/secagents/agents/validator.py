@@ -203,9 +203,19 @@ class ValidatorAgent(BaseAgent):
             async with httpx.AsyncClient(timeout=8.0, verify=verify_ssl, follow_redirects=True) as client:
                 method = finding.get("method", "GET").upper()
                 payload = finding.get("payload", "")
-                
-                if method == "POST":
-                    resp = await client.post(poc_url, data={"data": payload} if payload else None)
+                content_type = finding.get("metadata", {}).get("content_type", "")
+
+                if method in ["POST", "PUT", "PATCH"]:
+                    if "json" in content_type.lower() or (isinstance(payload, str) and payload.strip().startswith(("{", "["))):
+                        try:
+                            json_data = json.loads(payload)
+                            resp = await client.request(method, poc_url, json=json_data)
+                        except Exception:
+                            resp = await client.request(
+                                method, poc_url, content=payload, headers={"Content-Type": "application/json"}
+                            )
+                    else:
+                        resp = await client.request(method, poc_url, data={"data": payload} if payload else None)
                 else:
                     resp = await client.get(poc_url)
 
