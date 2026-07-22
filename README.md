@@ -21,7 +21,6 @@
 [![Go Recon](https://img.shields.io/badge/recon-go-cyan.svg)](https://go.dev/)
 [![Tests](https://img.shields.io/badge/tests-29%2F29%20passing-brightgreen.svg)](https://github.com/gl1tch0x1/cog-ai)
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Status](https://img.shields.io/badge/status-production--ready--cli-success.svg)]()
 
 </div>
 
@@ -31,7 +30,7 @@
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [What Is SecAgent](#-what-is-secagent)
 - [Key Differentiators](#-key-differentiators)
@@ -47,9 +46,9 @@
   - [Method 1 — Automated Installation Engine (Recommended)](#method-1--automated-installation-engine-recommended)
   - [Method 2 — Manual Package Installation](#method-2--manual-package-installation)
 - [Releases, Deployments \& Packages](#-releases-deployments--packages)
-  - [🏷️ Releases](#️-releases)
-  - [🚢 Deployment Models](#-deployment-models)
-  - [📦 Package Artifacts](#-package-artifacts)
+  - [ Releases](#️-releases)
+  - [ Deployment Models](#-deployment-models)
+  - [ Package Artifacts](#-package-artifacts)
 - [Configuration \& Operational Manifest](#-configuration--operational-manifest)
 - [Complete CLI Usage Reference](#-complete-cli-usage-reference)
   - [Subcommand Specifications \& Flags](#subcommand-specifications--flags)
@@ -63,7 +62,7 @@
 
 ---
 
-## ⚔️ What Is SecAgent
+##  What Is SecAgent
 
 Traditional vulnerability scanners are **rigid, noisy, and context-blind.** They execute static pattern matching, miss complex multi-stage attack vectors, and flood security operators with false positives that waste valuable time.
 
@@ -72,14 +71,14 @@ Traditional vulnerability scanners are **rigid, noisy, and context-blind.** They
 It operates as a **Distributed Cognitive Security Engine** — harnessing specialized multi-agent AI swarms that *reason* through attack surfaces the way an elite red-team operator does. SecAgent identifies technology stacks, enumerates subdomains and HTTP endpoints via active `httpx` and Go probes, crafts context-aware exploits, validates vulnerabilities through deterministic proof-of-concepts, and generates correlated, impact-first deliverables.
 
 Built for:
-- 🔴 **Red Teams** executing full-scope autonomous engagements
-- 🔬 **Security Researchers** performing automated attack surface discovery & zero-day research
-- 🐛 **Bug Bounty Hunters** conducting active recon and vulnerability verification
-- 🛡️ **Offensive AI Researchers** auditing AI supply chains, prompt injections, and RAG pipelines
+-  **Red Teams** executing full-scope autonomous engagements
+-  **Security Researchers** performing automated attack surface discovery & zero-day research
+-  **Bug Bounty Hunters** conducting active recon and vulnerability verification
+-  **Offensive AI Researchers** auditing AI supply chains, prompt injections, and RAG pipelines
 
 ---
 
-## 🚀 Key Differentiators
+##  Key Differentiators
 
 1. **Pure CLI-First Architecture**: No bloated web UI or complex database setup required. Designed for headless VPS execution, Docker containers, SSH sessions, and CI/CD pipelines.
 2. **Polyglot Performance Engine**: High-speed Go microservices for concurrent network probing, Rust for microsecond priority scheduling, and Python for LLM multi-agent reasoning.
@@ -89,23 +88,23 @@ Built for:
 
 ---
 
-## 💀 Capabilities Matrix
+##  Capabilities Matrix
 
 | Module | Sub-Components | Operational Description |
 |--------|----------------|-------------------------|
-| 🧠 **Neural Swarm Orchestration** | `Orchestrator`, `ArmadaSwarm`, `TaskDAG` | Decomposes high-level objectives into directed acyclic execution graphs (DAGs) with retry and circuit breaker logic. |
-| 🔍 **Active Recon Engine** | `ReconAgent`, `GoRecon`, `httpx` Prober | Active subdomain resolution, TLS/header probing, HTML crawling, link extraction, and GET/POST parameter discovery. |
-| 🌐 **Web Security Scanner** | `WebSecurityAgent`, `CVEChecks` | 31+ vulnerability classes including SQLi, XSS, SSTI, LFI, RFI, SSRF, RCE, Command Injection, and Log4Shell. |
-| ⚡ **API Security Scanner** | `APISecurityAgent` | REST & GraphQL introspection, BOLA/IDOR detection, JWT algorithm manipulation (`none` alg), and CORS misconfigurations. |
-| 🕸️ **Web3 & Contract Auditor** | `Web3SecurityAgent` | EVM & Solana smart contract security analysis for reentrancy, integer overflow, delegatecall vulnerabilities, and access control bypasses. |
-| 🛡️ **AI Supply Chain Audits** | `PromptInjectionCheck` | Audits `.cursorrules`, `mcp.json`, system prompts, RAG data exfiltration vectors, and indirect prompt injections. |
-| 🔬 **PoC Verification** | `CrucibleValidator` | Replays generated exploit payloads in sandbox environments to ensure zero false positives. |
-| ⛓️ **Exploit Chain Correlation** | `ChainCorrelator` | Links isolated vulnerabilities into complete end-to-end multi-step exploit paths. |
-| 📊 **Impact-First Reporting** | `ReportAgent` | Generates executive Markdown reports and machine-readable JSON artifacts. |
+|  **Neural Swarm Orchestration** | `Orchestrator`, `ArmadaSwarm`, `TaskDAG` | Decomposes high-level objectives into directed acyclic execution graphs (DAGs) with retry and circuit breaker logic. |
+|  **Active Recon Engine** | `ReconAgent`, `GoRecon`, `httpx` Prober | Active subdomain resolution, TLS/header probing, HTML crawling, link extraction, and GET/POST parameter discovery. |
+|  **Web Security Scanner** | `WebSecurityAgent`, `CVEChecks` | 31+ vulnerability classes including SQLi, XSS, SSTI, LFI, RFI, SSRF, RCE, Command Injection, and Log4Shell. |
+|  **API Security Scanner** | `APISecurityAgent` | REST & GraphQL introspection, BOLA/IDOR detection, JWT algorithm manipulation (`none` alg), and CORS misconfigurations. |
+|  **Web3 & Contract Auditor** | `Web3SecurityAgent` | EVM & Solana smart contract security analysis for reentrancy, integer overflow, delegatecall vulnerabilities, and access control bypasses. |
+|  **AI Supply Chain Audits** | `PromptInjectionCheck` | Audits `.cursorrules`, `mcp.json`, system prompts, RAG data exfiltration vectors, and indirect prompt injections. |
+|  **PoC Verification** | `CrucibleValidator` | Replays generated exploit payloads in sandbox environments to ensure zero false positives. |
+|  **Exploit Chain Correlation** | `ChainCorrelator` | Links isolated vulnerabilities into complete end-to-end multi-step exploit paths. |
+|  **Impact-First Reporting** | `ReportAgent` | Generates executive Markdown reports and machine-readable JSON artifacts. |
 
 ---
 
-## 🏛️ Comprehensive System Architecture
+##  Comprehensive System Architecture
 
 ### 1. High-Level System Topology & Polyglot Engine
 
@@ -229,7 +228,7 @@ flowchart TD
 
 ---
 
-## ⚡ Quick Start Guide
+##  Quick Start Guide
 
 ```bash
 # 1. Clone the repository
@@ -249,7 +248,7 @@ secagent scan --target example.com --depth standard
 
 ---
 
-## 🛠️ Installation Guide
+##  Installation Guide
 
 ### Prerequisites
 
@@ -289,14 +288,14 @@ pip install -e ./python-agents[dev,browser]
 
 ---
 
-## 📦 Releases, Deployments & Packages
+##  Releases, Deployments & Packages
 
-### 🏷️ Releases
+###  Releases
 - **Current Version**: `v0.3.0-dev`
 - **Release Tracking**: Managed via [CHANGELOG.md](file:///c:/Users/Acer/Downloads/SecAgent-Updated/SecAgent-Updated/CHANGELOG.md)
 - **Tagging**: Follows Semantic Versioning (`MAJOR.MINOR.PATCH`).
 
-### 🚢 Deployment Models
+###  Deployment Models
 
 SecAgent is engineered for flexible deployment across local machines, remote servers, and containerized clusters.
 
@@ -317,7 +316,7 @@ The installer generates executable binary wrappers for quick invocation:
 
 ---
 
-### 📦 Package Artifacts
+###  Package Artifacts
 
 The Python agent core is packaged as a standard PyPI wheel:
 
@@ -330,7 +329,7 @@ Artifact generated: `python-agents/dist/secagents-0.2.0-py3-none-any.whl`.
 
 ---
 
-## ⚙️ Configuration & Operational Manifest
+##  Configuration & Operational Manifest
 
 Operational parameters and API credentials are read from `.env`:
 
@@ -355,7 +354,7 @@ SECAGENT_VERIFY_SSL=true
 
 ---
 
-## 💻 Complete CLI Usage Reference
+##  Complete CLI Usage Reference
 
 ```text
 usage: secagent [-h] [--version]
@@ -423,11 +422,11 @@ secagent update
 
 ---
 
-## 📊 Sample Deliverables & Deliverable Schemas
+##  Sample Deliverables & Deliverable Schemas
 
 ### 1. Executive Markdown Deliverable
 ```markdown
-# 🛡️ Mission Intelligence Deliverable: example.com
+#  Mission Intelligence Deliverable: example.com
 
 ## Executive Summary
 SecAgent executed an autonomous security audit against target domain `example.com`. 
@@ -472,7 +471,7 @@ A total of **3 validated vulnerabilities** were extracted with zero false positi
 
 ---
 
-## 📁 Project Directory Layout
+##  Project Directory Layout
 
 ```text
 SecAgent/
@@ -578,7 +577,7 @@ SecAgent/
 
 ---
 
-## 🛠️ Troubleshooting & Operations Guide
+##  Troubleshooting & Operations Guide
 
 ### Common Operational Scenarios
 
@@ -602,7 +601,7 @@ secagent scan --target https://staging.local --insecure
 
 ---
 
-## 🤝 Contributing & Security Policy
+##  Contributing & Security Policy
 
 ### Contributing
 1. Fork the repository on GitHub.
@@ -615,6 +614,6 @@ To report a security vulnerability within SecAgent itself, please review our [SE
 
 ---
 
-## 📄 License
+##  License
 
 Distributed under the MIT License. See [LICENSE](file:///c:/Users/Acer/Downloads/SecAgent-Updated/SecAgent-Updated/LICENSE) for details.
