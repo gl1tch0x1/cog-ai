@@ -1,6 +1,7 @@
 """Validator agent for finding verification and false positive filtering."""
 
 import asyncio
+import json
 import logging
 import os
 import httpx
