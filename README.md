@@ -20,7 +20,8 @@
 [![Rust Core](https://img.shields.io/badge/core-rust-orange.svg)](https://www.rust-lang.org/)
 [![Go Recon](https://img.shields.io/badge/recon-go-cyan.svg)](https://go.dev/)
 [![Tests](https://img.shields.io/badge/tests-29%2F29%20passing-brightgreen.svg)](https://github.com/gl1tch0x1/cog-ai)
-[![Status](https://img.shields.io/badge/status-pure--cli--ready-success.svg)]()
+[![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Status](https://img.shields.io/badge/status-production--ready--cli-success.svg)]()
 
 </div>
 
@@ -33,102 +34,211 @@
 ## 📋 Table of Contents
 
 - [What Is SecAgent](#-what-is-secagent)
-- [Capabilities](#-capabilities)
-- [Architecture](#-architecture)
-- [Quick Start](#-quick-start)
+- [Key Differentiators](#-key-differentiators)
+- [Capabilities Matrix](#-capabilities-matrix)
+- [Comprehensive System Architecture](#-comprehensive-system-architecture)
+  - [1. High-Level Topology \& Polyglot Engine](#1-high-level-topology--polyglot-engine)
+  - [2. End-to-End Autonomous Scan Lifecycle](#2-end-to-end-autonomous-scan-lifecycle)
+  - [3. Multi-Agent Swarm Decision Logic](#3-multi-agent-swarm-decision-logic)
+  - [4. Multi-Provider LLM Fallback \& Consensus Engine](#4-multi-provider-llm-fallback--consensus-engine)
+- [Quick Start Guide](#-quick-start-guide)
 - [Installation Guide](#-installation-guide)
-- [Running Your First Scan](#-running-your-first-scan)
+  - [Prerequisites](#prerequisites)
+  - [Method 1 — Automated Installation (Recommended)](#method-1--automated-installation-recommended)
+  - [Method 2 — Manual Package Installation](#method-2--manual-package-installation)
 - [Releases, Deployments \& Packages](#-releases-deployments--packages)
-- [Configuration](#-configuration)
-- [Usage Reference](#-usage-reference)
-- [Project Structure](#-project-structure)
-- [Contributing](#-contributing)
+  - [🏷️ Releases](#️-releases)
+  - [🚢 Deployment Models](#-deployment-models)
+  - [📦 Package Artifacts](#-package-artifacts)
+- [Configuration \& Operational Manifest](#-configuration--operational-manifest)
+- [Complete CLI Usage Reference](#-complete-cli-usage-reference)
+  - [Commands \& Subcommands](#commands--subcommands)
+- [Sample Deliverables \& Reports](#-sample-deliverables--reports)
+- [Project Directory Layout](#-project-directory-layout)
+- [Contributing \& Security Policy](#-contributing--security-policy)
+- [License](#-license)
 
 ---
 
 ## ⚔️ What Is SecAgent
 
-Traditional vulnerability scanners are **rigid, noisy, and context-blind.** They follow fixed paths, miss chained attack vectors, and flood operators with false positives.
+Traditional vulnerability scanners are **rigid, noisy, and context-blind.** They execute static pattern matching, miss multi-stage attack vectors, and flood security operators with false positives.
 
-**SecAgent is a Pure CLI, High-Performance Red Teaming Framework.**
+**SecAgent is an Autonomous, Pure-CLI Red Teaming & Offensive Intelligence Framework.**
 
-It functions as a **Distributed Cognitive Security Engine** — using autonomous multi-agent swarms to *reason* through attack surfaces. It analyzes the target stack, discovers subdomains and HTTP services via active `httpx` and Go probes, crafts context-aware payloads, validates findings, and generates impact-first reports.
+It operates as a **Distributed Cognitive Security Engine** — harnessing specialized multi-agent AI swarms that *reason* through attack surfaces the way an elite red-team operator does. SecAgent identifies technology stacks, enumerates subdomains and HTTP endpoints via active `httpx` and Go probes, crafts context-aware exploits, validates vulnerabilities through deterministic proof-of-concepts, and generates correlated, impact-first deliverables.
 
 Built for:
-- 🔴 **Red Teams** running head-less CLI engagements
-- 🔬 **Security Researchers** auditing complex attack surfaces
-- 🐛 **Bug Bounty Hunters** conducting active recon and vulnerability discovery
-- 🛡️ **Offensive AI Researchers** testing prompt injection and LLM pipelines
+- 🔴 **Red Teams** executing full-scope autonomous engagements
+- 🔬 **Security Researchers** performing automated attack surface discovery & zero-day research
+- 🐛 **Bug Bounty Hunters** conducting active recon and vulnerability verification
+- 🛡️ **Offensive AI Researchers** auditing AI supply chains, prompt injections, and RAG pipelines
 
 ---
 
-## 💀 Capabilities
+## 🚀 Key Differentiators
 
-| Module | Description |
-|--------|-------------|
-| 🧠 **Neural Swarm Orchestration** | Decomposes security objectives into atomic execution graphs (DAGs) |
-| 🔍 **Active Recon Engine** | Asynchronous HTTP/HTTPS probing, active subdomain resolution, link crawling & parameter extraction |
-| 🎯 **PoC Validation** | Auto-crafts deterministic proof-of-concepts to verify findings and eliminate false positives |
-| 🕸️ **Web3 Auditing** | Smart contract & token ecosystem auditing for EVM and Solana vulnerabilities |
-| 🛡️ **AI Supply Chain Audits** | Detects weaponized AI configs (`.cursorrules`, `mcp.json`), prompt injection, and RAG exfiltration |
-| ⛓️ **Exploit Chain Correlation** | Links findings into multi-step exploit chains |
-| 📊 **Impact-First Deliverables** | Generates executive Markdown and machine-readable JSON reports |
+1. **Pure CLI-First Architecture**: No bloated web UI or complex database setup required. Designed for headless VPS execution, Docker containers, SSH sessions, and CI/CD pipelines.
+2. **Polyglot Performance Engine**: High-speed Go microservices for concurrent network probing, Rust for microsecond priority scheduling, and Python for LLM multi-agent reasoning.
+3. **Zero False-Positive Validation**: Integrated `CrucibleValidator` replays proof-of-concept payloads against target endpoints to verify vulnerabilities before reporting.
+4. **Hardware-Aware Local Fallback**: Automatically detects GPU/CPU capabilities to provision local Ollama models (`llama3`, `mistral`, `codellama`) when cloud APIs are unavailable.
+5. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains.
 
 ---
 
-## 🏛️ Architecture
+## 💀 Capabilities Matrix
+
+| Module | Sub-Components | Operational Description |
+|--------|----------------|-------------------------|
+| 🧠 **Neural Swarm Orchestration** | `Orchestrator`, `ArmadaSwarm`, `TaskDAG` | Decomposes high-level objectives into directed acyclic execution graphs (DAGs) with retry and circuit breaker logic. |
+| 🔍 **Active Recon Engine** | `ReconAgent`, `GoRecon`, `httpx` Prober | Active subdomain resolution, TLS/header probing, HTML crawling, link extraction, and GET/POST parameter discovery. |
+| 🌐 **Web Security Scanner** | `WebSecurityAgent`, `CVEChecks` | 31+ vulnerability classes including SQLi, XSS, SSTI, LFI, RFI, SSRF, RCE, Command Injection, and Log4Shell. |
+| ⚡ **API Security Scanner** | `APISecurityAgent` | REST & GraphQL introspection, BOLA/IDOR detection, JWT algorithm manipulation (`none` alg), and CORS misconfigurations. |
+| 🕸️ **Web3 & Contract Auditor** | `Web3SecurityAgent` | EVM & Solana smart contract security analysis for reentrancy, integer overflow, delegatecall vulnerabilities, and access control bypasses. |
+| 🛡️ **AI Supply Chain Audits** | `PromptInjectionCheck` | Audits `.cursorrules`, `mcp.json`, system prompts, RAG data exfiltration vectors, and indirect prompt injections. |
+| 🔬 **PoC Verification** | `CrucibleValidator` | Replays generated exploit payloads in sandbox environments to ensure zero false positives. |
+| ⛓️ **Exploit Chain Correlation** | `ChainCorrelator` | Links isolated vulnerabilities into complete end-to-end multi-step exploit paths. |
+| 📊 **Impact-First Reporting** | `ReportAgent` | Generates executive Markdown reports and machine-readable JSON artifacts. |
+
+---
+
+## 🏛️ Comprehensive System Architecture
+
+### 1. High-Level Topology & Polyglot Engine
 
 ```mermaid
 graph TB
-    subgraph CLI["🖥️ Pure CLI Interface"]
-        CMD["`secagent scan --target example.com`"]
-        TUI["Rich Terminal Dashboard / Telemetry"]
+    subgraph CLI_LAYER["🖥️ CLI Control Plane"]
+        CLI["secagent CLI (Rich TUI)"]
+        SCOPE["Scope Gate (Enforcer)"]
+        VAULT["Vault Key Manager"]
     end
 
-    subgraph SWARM["🧠 Python Agent Swarm"]
+    subgraph SWARM_LAYER["🧠 Python Agent Swarm"]
         PLANNER["🎯 Planner Agent"]
-        RECON["🔍 Recon Agent (Active httpx & DNS Probing)"]
+        RECON["🔍 Recon Agent (httpx + Async)"]
         WEB["🌐 Web Security Agent"]
-        API_AGENT["⚡ API Security Agent"]
+        API["⚡ API Security Agent"]
+        WEB3["🕸️ Web3 Security Agent"]
         VALIDATOR["🔬 Validator Agent"]
         REPORTER["📊 Report Agent"]
     end
 
-    subgraph ENGINE["⚙️ High-Performance Core"]
+    subgraph ENGINE_LAYER["⚙️ Polyglot Core Engine"]
         RUST["🦀 Rust Engine & Priority Scheduler"]
-        GO["🐹 Go Recon & Subdomain Enumerator"]
+        GO["🐹 Go Subdomain & Network Prober"]
         REDIS[("🔴 Redis Pub/Sub Event Bus")]
     end
 
-    CMD --> TUI
-    TUI --> PLANNER
+    CLI --> SCOPE
+    SCOPE --> VAULT
+    VAULT --> PLANNER
     PLANNER --> RECON
     PLANNER --> WEB
-    PLANNER --> API_AGENT
+    PLANNER --> API
+    PLANNER --> WEB3
     RECON --> GO
     RECON --> RUST
-    SWARM --> REDIS
-    SWARM --> VALIDATOR
+    SWARM_LAYER --> REDIS
+    SWARM_LAYER --> VALIDATOR
     VALIDATOR --> REPORTER
 ```
 
 ---
 
-## ⚡ Quick Start
+### 2. End-to-End Autonomous Scan Lifecycle
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Operator as Operator / CLI
+    participant Pipeline as ScanPipeline
+    participant Swarm as Agent Swarm
+    participant Recon as Recon Agent (Go/httpx)
+    participant Validator as Crucible Validator
+    participant Reporter as Report Generator
+
+    Operator->>Pipeline: secagent scan -t target.com --depth standard
+    Pipeline->>Pipeline: Enforce Scope & Run Preflight Checks
+    Pipeline->>Swarm: Initialize Neural Swarm & Decompose Objectives
+    Swarm->>Recon: Execute Active Subdomain & HTTP Probing
+    Recon-->>Swarm: Return Active Hosts, Services & Parameters
+    Swarm->>Swarm: Run Parallel Scans (Web, API, Web3, CVE Checks)
+    Swarm-->>Validator: Submit Raw Finding Signals
+    Validator->>Validator: Replay PoC Payloads & Linear-Scale Latency Checks
+    Validator-->>Reporter: Return 100% Confirmed Vulnerabilities
+    Reporter->>Operator: Render Mission Intelligence Summary & Save Reports
+```
+
+---
+
+### 3. Multi-Agent Swarm Decision Logic
+
+```mermaid
+graph LR
+    SUB["Supervisor Agent"] -->|Classify Intent| PLAN["Planner Agent"]
+    PLAN -->|Execution Graph| WORKERS["Worker Swarm"]
+    
+    subgraph WORKERS["Worker Swarm"]
+        direction TB
+        R["Recon Agent"]
+        W["Web Security"]
+        A["API Security"]
+        W3["Web3 Security"]
+    end
+
+    WORKERS -->|Raw Signals| VAL["Crucible Validator"]
+    VAL -->|Confirmed PoC| REP["Report Agent"]
+
+    style SUB fill:#0f3460,stroke:#e94560,color:#fff
+    style PLAN fill:#16213e,stroke:#00ffff,color:#fff
+    style VAL fill:#1a6b1a,stroke:#00ff00,color:#fff
+    style REP fill:#533483,stroke:#ff00ff,color:#fff
+```
+
+---
+
+### 4. Multi-Provider LLM Fallback & Consensus Engine
+
+```mermaid
+flowchart TD
+    REQ["Agent Task Request"] --> PROVIDER{"Primary LLM Configured?"}
+    
+    PROVIDER -- "OpenAI" --> OAI["OpenAI (GPT-4o)"]
+    PROVIDER -- "Anthropic" --> ANT["Anthropic (Claude 3.5)"]
+    PROVIDER -- "Gemini" --> GEM["Google (Gemini 1.5 Pro)"]
+    PROVIDER -- "Groq" --> GROQ["Groq (Llama-3 70B)"]
+    
+    OAI -- "Fail / Rate Limit" --> ANT
+    ANT -- "Fail / Rate Limit" --> GEM
+    GEM -- "Fail / Rate Limit" --> GROQ
+    GROQ -- "Fail / Offline" --> LOCAL["Local Ollama Fallback"]
+    
+    OAI --> CONSENSUS["Consensus Engine (Min Agreement: 2)"]
+    ANT --> CONSENSUS
+    GEM --> CONSENSUS
+    LOCAL --> CONSENSUS
+    
+    CONSENSUS --> OUT["Validated Agent Decision"]
+```
+
+---
+
+## ⚡ Quick Start Guide
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/gl1tch0x1/cog-ai.git
 cd cog-ai
 
-# 2. Run the automated installer
+# 2. Run the automated deployment engine
 python installer.py
 
-# 3. Configure environment secrets
+# 3. Configure API keys (optional — local Ollama fallback supported)
 cp .env.example .env
 nano .env  # Add OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY
 
-# 4. Initiate an autonomous red-team scan
+# 4. Run an autonomous scan
 secagent scan --target example.com --depth standard
 ```
 
@@ -138,45 +248,38 @@ secagent scan --target example.com --depth standard
 
 ### Prerequisites
 
-| Requirement | Minimum | Notes |
-|-------------|---------|-------|
-| **OS** | Linux / macOS / Windows (native or WSL2) | Fully supported on Windows & Linux |
-| **Python** | 3.11+ | Python 3.11, 3.12, and 3.13 |
-| **Git** | Installed | For versioning and updates |
-| **Docker** | *(Optional)* | For isolated sandbox execution (`--no-sandbox` to bypass) |
-
-### Manual Package Installation
-
-```bash
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-.\venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
-
-# Install secagents CLI package in editable mode
-pip install -e ./python-agents[dev]
-```
+| Requirement | Minimum | Recommended | Notes |
+|-------------|---------|-------------|-------|
+| **OS** | Windows / Linux / macOS | Linux / macOS / WSL2 | Fully supported on native Windows PowerShell & Linux |
+| **Python** | 3.11+ | Python 3.11, 3.12, 3.13 | Verified compatibility across environments |
+| **Git** | Installed | Latest | Version control & update engine |
+| **Docker** | *(Optional)* | 20.10+ | Containerized sandbox execution (`--no-sandbox` to bypass) |
 
 ---
 
-## 🚀 Running Your First Scan
+### Method 1 — Automated Installation (Recommended)
+
+The installer sets up virtual environments, mounts core dependencies, creates entrypoints, and verifies system integrity:
 
 ```bash
-# Execute standard scan
-secagent scan --target example.com --depth standard --workers 8
+python installer.py
+```
 
-# Execute quick scan with local LLM fallback
-secagent scan --target target.local --depth quick --setup-local-llm
+### Method 2 — Manual Package Installation
 
-# Audit local repository for leaked credentials
-secagent keyhacks ./src
+For developer control or integration into existing Python environments:
 
-# Verify system readiness
-secagent preflight
+```bash
+# 1. Create and activate virtual environment
+python -m venv venv
+
+# Windows PowerShell:
+.\venv\Scripts\Activate.ps1
+# Linux / macOS:
+source venv/bin/activate
+
+# 2. Install secagents package in editable mode
+pip install -e ./python-agents[dev,browser]
 ```
 
 ---
@@ -184,101 +287,194 @@ secagent preflight
 ## 📦 Releases, Deployments & Packages
 
 ### 🏷️ Releases
-- **Current Release**: `v0.3.0-dev`
-- **Changelog**: Detailed in [CHANGELOG.md](file:///c:/Users/Acer/Downloads/SecAgent-Updated/SecAgent-Updated/CHANGELOG.md)
+- **Current Version**: `v0.3.0-dev`
+- **Release Tracking**: Managed via [CHANGELOG.md](file:///c:/Users/Acer/Downloads/SecAgent-Updated/SecAgent-Updated/CHANGELOG.md)
+- **Tagging**: Follows Semantic Versioning (`MAJOR.MINOR.PATCH`).
 
-### 🚢 Deployments
-SecAgent is designed for lightweight, headless CLI operations and containerized worker nodes.
+### 🚢 Deployment Models
+
+SecAgent is engineered for flexible deployment across local machines, remote servers, and containerized clusters.
 
 #### Docker Compose Deployment
+Run core background microservices (Redis event bus, Rust engine, Go prober):
 ```bash
-# Launch background event bus and core services
 docker compose up -d
 ```
-Docker compose provisions:
-- `redis`: Pub/Sub event bus
-- `rust-core`: Microsecond priority task scheduler
-- `recon`: Go-based concurrent scanner
+Container inventory:
+- `redis`: Pub/Sub event bus (`:6379`)
+- `rust-core`: Rust priority task scheduler
+- `recon`: Go high-concurrency network prober
 
-### 📦 Packages
+#### Standalone CLI Binary Deployment
+The installer generates executable binary wrappers for quick invocation:
+- **Windows**: `secagent.bat`
+- **Linux/macOS**: `./secagent`
 
-The Python core engine is packaged as `secagents`:
+---
+
+### 📦 Package Artifacts
+
+The Python agent core is packaged as a standard PyPI wheel:
 
 ```bash
 # Build python package wheel
 cd python-agents
 python -m build
 ```
-Generates wheel in `python-agents/dist/secagents-0.2.0-py3-none-any.whl`.
+Artifact generated: `python-agents/dist/secagents-0.2.0-py3-none-any.whl`.
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ Configuration & Operational Manifest
 
-Environment variables can be set in `.env`:
+Operational parameters and API credentials are read from `.env`:
 
 ```env
-# Primary LLM Provider Keys
-OPENAI_API_KEY=sk-...
+# ─── Primary LLM Provider Keys ───
+OPENAI_API_KEY=sk-proj-...
 ANTHROPIC_API_KEY=sk-ant-...
 GEMINI_API_KEY=AIzaSy...
+GROQ_API_KEY=gsk_...
+DEEPSEEK_API_KEY=sk-...
 
-# Operational Settings
+# ─── Local LLM Configuration ───
+OLLAMA_HOST=http://localhost:11434
+DEFAULT_LOCAL_MODEL=llama3:8b
+
+# ─── Operational Scope & Infrastructure ───
 ALLOWED_DOMAINS=example.com,target.local
 REDIS_URL=redis://localhost:6379/0
 RESULTS_DIR=cog-ai-results
+SECAGENT_VERIFY_SSL=true
 ```
 
 ---
 
-## 💻 Usage Reference
+## 💻 Complete CLI Usage Reference
 
 ```text
 usage: secagent [-h] [--version]
                 {scan,vault,keyhacks,preflight,update,hardware,worker} ...
 
+SecAgent — Autonomous Offensive AI Framework (authorized testing only)
+
 positional arguments:
-  scan       Execute autonomous red-team pipeline
-  vault      Interface with secret storage and API keys
-  keyhacks   Scan local assets for leaked credentials
-  preflight  Validate system readiness
-  update     Check and apply framework updates
-  hardware   Hardware-aware model optimization
-  worker     Start background workflow processor
+  {scan,vault,keyhacks,preflight,update,hardware,worker}
+    scan                Execute autonomous red-team pipeline
+    vault               Interface with secret storage and API keys
+    keyhacks            Scan local assets for leaked credentials
+    preflight           Validate system readiness
+    update              Check and apply framework updates
+    hardware            Hardware-aware model optimization
+    worker              Start background workflow processor
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+```
+
+### Commands & Subcommands
+
+#### 1. `secagent scan` — Autonomous Red-Team Pipeline
+```bash
+secagent scan --target <domain/URL> [options]
+
+Options:
+  --target, -t TEXT       Target domain or URL [Required]
+  --depth {quick,standard,deep}  Scan intensity (default: standard)
+  --workers, -w INT       Parallel agent swarm size (default: 4)
+  --skip-os-check         Bypass OS security baseline check
+  --no-sandbox            Bypass Docker Fortress isolation
+  --no-arsenal            Skip heuristic Arsenal probes
+  --insecure              Bypass SSL/TLS verification
+  --setup-local-llm       Auto-provision local Ollama model
+  --results-dir PATH      Output directory for deliverables
+```
+
+#### 2. `secagent vault` — Key Integrity Manager
+```bash
+secagent vault --validate --env .env
+```
+
+#### 3. `secagent keyhacks` — Credential Audit
+```bash
+secagent keyhacks ./src --rate-limit 10.0
+```
+
+#### 4. `secagent preflight` — System Readiness Verification
+```bash
+secagent preflight
+```
+
+#### 5. `secagent hardware` — Hardware Detection
+```bash
+secagent hardware
 ```
 
 ---
 
-## 📁 Project Structure
+## 📊 Sample Deliverables & Reports
+
+### Terminal Telemetry Output
+```text
+╔══════════════════════════════════════════════════════════════════╗
+║          SecAgents — Elite Red Team Deployment Engine           ║
+╚══════════════════════════════════════════════════════════════════╝
+
+INITIATING OPERATION: example.com
+Parameters: depth=standard, workers=8
+
+MISSION INTELLIGENCE SUMMARY
+┌──────────┬──────────────────────────────┬──────────────────┬────────────┐
+│ SEVERITY │ VULNERABILITY                │ TARGET ENDPOINT  │ CONFIDENCE │
+├──────────┼──────────────────────────────┼──────────────────┼────────────┤
+│ CRITICAL │ SQL Injection                │ /api/users       │    95%     │
+│ HIGH     │ Reflected XSS                │ /search?q=       │    90%     │
+│ HIGH     │ Insecure Direct Object Ref    │ /api/users/102   │    85%     │
+└──────────┴──────────────────────────────┴──────────────────┴────────────┘
+
+✅ OPERATION COMPLETE — 3 Validated Signal(s) Extracted.
+Deliverables saved to: cog-ai-results/example.com_report.md
+```
+
+---
+
+## 📁 Project Directory Layout
 
 ```text
 SecAgent/
-├── python-agents/           # Primary Python AI Swarm & CLI
+├── python-agents/           # Primary Python AI Swarm & CLI Package
+│   ├── pyproject.toml       # Package dependencies & metadata
 │   └── secagents/
 │       ├── agents/          # Recon, Web, API, Web3, Validator, Reporter agents
 │       ├── core/            # Orchestrator, Worker Pool, Memory Graph
-│       ├── modules/         # CVE checks, payload generators
+│       ├── modules/         # Deterministic CVE checks & payload generators
+│       ├── pipeline/        # Unified ScanPipeline runner
+│       ├── vault/           # Environment loader & key validation
 │       └── cli.py           # Rich CLI entrypoint
-├── go-services/             # Go microservices
-│   ├── recon/               # Subdomain & HTTP probe engine
-│   └── scanners/            # High-speed network scanners
-├── rust-core/               # Rust engine, scheduler & event bus
-├── docker-compose.yml       # Production services configuration
-├── Makefile                 # Unified build & test commands
-├── installer.py             # Automated bootstrap installer
-├── update.py                # Intelligence update engine
-└── SKILL.md                 # Advanced hunting knowledge base
+├── go-services/             # Go Microservices
+│   ├── recon/               # High-speed subdomain & HTTP probe engine
+│   └── scanners/            # Custom network scanner binaries
+├── rust-core/               # Rust Core Engine & Priority Scheduler
+├── docker-compose.yml       # Docker services configuration
+├── Makefile                 # Build, test, and execution targets
+├── installer.py             # Deployment engine installer
+├── update.py                # Intelligence & framework sync tool
+└── SKILL.md                 # Security hunting methodology reference
 ```
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contributing & Security Policy
 
-Contributions are welcome! Please follow these steps:
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/awesome-check`)
-3. Ensure all tests pass (`pytest`) and code is linted (`ruff check python-agents`)
-4. Submit a Pull Request
+### Contributing
+1. Fork the repository on GitHub.
+2. Create your feature branch (`git checkout -b feature/advanced-cve-check`).
+3. Verify test coverage (`pytest`) and linter compliance (`ruff check python-agents`).
+4. Commit your changes and submit a Pull Request.
+
+### Reporting Vulnerabilities
+To report a security vulnerability within SecAgent itself, please review our [SECURITY.md](file:///c:/Users/Acer/Downloads/SecAgent-Updated/SecAgent-Updated/SECURITY.md) for responsible disclosure guidelines.
 
 ---
 
