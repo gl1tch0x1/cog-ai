@@ -46,6 +46,8 @@ class ArmadaOrchestrator:
         if agent_name in self._specialists:
             self._specialists[agent_name].handler = handler
 
+    def plan_mission(self, target: str, depth: str = "standard") -> ExecutionGraph:
+        """Planner Agent: build DAG from high-level goal."""
         from secagents.core.aura_memory import AuraMemoryManager
 
         # Consult Cognitive Memory prior to DAG building

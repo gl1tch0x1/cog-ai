@@ -207,10 +207,10 @@ class ScanPipeline:
         memory = AuraMemoryManager.get_instance()
         
         # Remember Target DNA
-        clean_domain = target.replace("https://", "").replace("http://", "").split("/")[0]
+        clean_domain = self.target.replace("https://", "").replace("http://", "").split("/")[0]
         memory.remember_target_dna(
             TargetDNA(
-                target=target,
+                target=self.target,
                 domain=clean_domain,
                 tech_stack=list(self.results.get("intel", {}).get("technologies", [])),
                 rate_limit_detected=any(f.get("type") == "missing_rate_limiting" for f in validated),
@@ -222,7 +222,7 @@ class ScanPipeline:
         for f in validated:
             if isinstance(f, dict) and f.get("severity") in ["critical", "high", "medium"]:
                 memory.crystallize_pattern(
-                    target=target,
+                    target=self.target,
                     vuln_type=f.get("vuln_type") or f.get("type", "unknown"),
                     payload=f.get("payload", ""),
                     waf_bypassed=f.get("waf_bypassed", False),
