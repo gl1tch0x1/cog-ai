@@ -83,12 +83,13 @@ Built for:
 
 1. **Pure CLI-First Architecture**: No bloated web UI or complex database setup required. Designed for headless VPS execution, Docker containers, SSH sessions, and CI/CD pipelines.
 2. **Polyglot Performance Engine**: High-speed Go microservices for concurrent network probing, Rust for microsecond priority scheduling, C++20 for SIMD regex signature matching, and Python for LLM multi-agent reasoning.
-3. **Zero False-Positive Live Validation**: Integrated `CrucibleValidator` replays proof-of-concept payloads with HTTP status code consistency & response body variance checks against target endpoints.
-4. **Shared Connection Pooling & High Concurrency**: Connection-pooled `CVEScanner` and concurrent `WebSecurityAgent` scanning via `asyncio.Semaphore` task dispatching.
-5. **Headless Browser Inspection**: `BrowserAgent` automated Chrome DOM extraction & dynamic Playwright form parsing with fallback HTTP inspection.
-6. **Strict SSL/TLS Enforcement**: Environment-controlled dynamic SSL verification (`SECAGENT_VERIFY_SSL`) across all agent HTTP clients.
-7. **Hardware-Aware Local Fallback**: Automatically detects GPU/CPU capabilities to provision local Ollama models (`llama3`, `mistral`, `codellama`) when cloud APIs are unavailable.
-8. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains and agreement thresholding.
+3. **Aura Cognitive Memory Engine**: Target DNA layering, payload pattern crystallization, decay-reinforcement mechanisms, and WAF fingerprint memory across scan missions (`secagent memory`).
+4. **Zero False-Positive Live Validation**: Integrated `CrucibleValidator` replays proof-of-concept payloads with HTTP status code consistency & response body variance checks against target endpoints.
+5. **Shared Connection Pooling & High Concurrency**: Connection-pooled `CVEScanner` and concurrent `WebSecurityAgent` scanning via `asyncio.Semaphore` task dispatching.
+6. **Headless Browser Inspection**: `BrowserAgent` automated Chrome DOM extraction & dynamic Playwright form parsing with fallback HTTP inspection.
+7. **Strict SSL/TLS Enforcement**: Environment-controlled dynamic SSL verification (`SECAGENT_VERIFY_SSL`) across all agent HTTP clients.
+8. **Hardware-Aware Local Fallback**: Automatically detects GPU/CPU capabilities to provision local Ollama models (`llama3`, `mistral`, `codellama`) when cloud APIs are unavailable.
+9. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains and agreement thresholding.
 
 ---
 
@@ -97,6 +98,7 @@ Built for:
 | Module | Sub-Components | Operational Description |
 |--------|----------------|-------------------------|
 |  **Neural Swarm Orchestration** | `Orchestrator`, `ArmadaSwarm`, `TaskDAG` | Decomposes high-level objectives into directed acyclic execution graphs (DAGs) with retry and circuit breaker logic. |
+|  **Aura Cognitive Memory** | `AuraMemoryManager`, Target DNA | Target DNA fingerprinting, WAF memory, payload pattern crystallization, automatic confidence reinforcement & decay (`secagent memory`). |
 |  **Active Recon Engine** | `ReconAgent`, `GoRecon`, `httpx` Prober | Active subdomain resolution, TLS/header probing, HTML crawling, link extraction, and GET/POST parameter discovery. |
 |  **Headless Browser Engine** | `BrowserAgent`, Playwright | Chromium DOM tree inspection, dynamic JS error tracking, and automated HTML form input extraction. |
 |  **Web Security Scanner** | `WebSecurityAgent`, `CVEChecks` | 31+ vulnerability classes including SQLi, XSS, SSTI, LFI, RFI, SSRF, RCE, Command Injection, Log4Shell, and multi-origin CORS checks. |
@@ -122,8 +124,13 @@ graph TB
         PREFLIGHT["Preflight Integrity Checker"]
     end
 
-    subgraph SWARM_LAYER["🧠 Python Agent Swarm"]
-        PLANNER["🎯 Planner Agent (DAG Builder)"]
+    subgraph MEMORY_LAYER["🧠 Cognitive Memory Subsystem"]
+        AURA["AuraMemoryManager (Target DNA & Pattern Engine)"]
+        DB[("💾 SQLite / aura-memory SDK Database")]
+    end
+
+    subgraph SWARM_LAYER["🐝 Python Agent Swarm"]
+        PLANNER["🎯 Planner Agent (Armada DAG Builder)"]
         RECON["🔍 Recon Agent (httpx + Async Prober)"]
         WEB["🌐 Web Security Agent"]
         API["⚡ API Security Agent"]
@@ -143,6 +150,8 @@ graph TB
     SCOPE --> PREFLIGHT
     PREFLIGHT --> VAULT
     VAULT --> PLANNER
+    AURA <--> DB
+    PLANNER <-->|Recall Target DNA| AURA
     PLANNER --> RECON
     PLANNER --> WEB
     PLANNER --> API
@@ -152,6 +161,7 @@ graph TB
     RECON --> CPP
     SWARM_LAYER --> REDIS
     SWARM_LAYER --> VALIDATOR
+    VALIDATOR -->|Crystallize Exploits| AURA
     VALIDATOR --> REPORTER
 ```
 
@@ -260,6 +270,7 @@ sequenceDiagram
     autonumber
     actor Operator as Operator / CLI
     participant Pipeline as ScanPipeline
+    participant Memory as Aura Cognitive Memory
     participant Swarm as Agent Swarm
     participant Recon as Recon Agent (Go/httpx)
     participant Validator as Crucible Validator
@@ -267,12 +278,15 @@ sequenceDiagram
 
     Operator->>Pipeline: secagent scan -t target.com --depth standard
     Pipeline->>Pipeline: Enforce Scope & Run Preflight System Checks
-    Pipeline->>Swarm: Initialize Neural Swarm & Decompose Objectives
+    Pipeline->>Memory: Recall Target DNA & WAF Signature
+    Memory-->>Pipeline: Return Historical Fingerprints & High-Confidence Payloads
+    Pipeline->>Swarm: Initialize Swarm DAG with Recalled Memory
     Swarm->>Recon: Execute Active Subdomain & HTTP Probing
     Recon-->>Swarm: Return Active Hosts, Services & Parameters
     Swarm->>Swarm: Run Parallel Scans (Web, API, Web3, CVE Checks)
     Swarm-->>Validator: Submit Raw Finding Signals
     Validator->>Validator: Replay PoC Payloads & Linear-Scale Latency Checks
+    Validator->>Memory: Crystallize Validated Exploit Patterns & Update Target DNA
     Validator-->>Reporter: Return 100% Confirmed Vulnerabilities
     Reporter->>Operator: Render Mission Intelligence Summary & Save Deliverables
 ```
@@ -513,7 +527,16 @@ secagent keyhacks ./src --rate-limit 10.0
 secagent preflight
 ```
 
-#### 5. `secagent hardware` — Hardware Detection
+#### 5. `secagent memory` — Aura Cognitive Memory Control
+```bash
+secagent memory [options]
+
+Options:
+  --target, -t TEXT       Filter cognitive memory signals by target domain
+  --purge-decay           Apply memory decay algorithms & remove zero-confidence patterns
+```
+
+#### 6. `secagent hardware` — Hardware Detection
 ```bash
 secagent hardware
 ```
