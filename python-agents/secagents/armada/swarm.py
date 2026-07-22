@@ -46,10 +46,21 @@ class ArmadaOrchestrator:
         if agent_name in self._specialists:
             self._specialists[agent_name].handler = handler
 
-    def plan_mission(self, target: str, depth: str = "standard") -> ExecutionGraph:
-        """Planner Agent: build DAG from high-level goal."""
+        from secagents.core.aura_memory import AuraMemoryManager
+
+        # Consult Cognitive Memory prior to DAG building
+        memory = AuraMemoryManager.get_instance()
+        dna = memory.recall_target_dna(target)
+
+        adjusted_depth = depth
+        if dna:
+            logger.info(
+                f"ArmadaSwarm: Recalled Target DNA for {target}. "
+                f"Rate Limited: {dna.rate_limit_detected}, WAF: {dna.waf_signature or 'None'}"
+            )
+
         intent = Intent.SCAN
-        context = {"target": target, "depth": depth}
+        context = {"target": target, "depth": adjusted_depth, "recalled_dna": dna}
         graph = self._orchestrator.decompose_intent(intent, context)
 
         # Route tasks to appropriate specialist agents based on action semantics

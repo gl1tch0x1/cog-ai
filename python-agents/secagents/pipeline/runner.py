@@ -202,6 +202,34 @@ class ScanPipeline:
         for f in validated:
             registry.register(f)
 
+        # 6b. Crystallize Cognitive Memory Signals
+        from secagents.core.aura_memory import AuraMemoryManager, TargetDNA
+        memory = AuraMemoryManager.get_instance()
+        
+        # Remember Target DNA
+        clean_domain = target.replace("https://", "").replace("http://", "").split("/")[0]
+        memory.remember_target_dna(
+            TargetDNA(
+                target=target,
+                domain=clean_domain,
+                tech_stack=list(self.results.get("intel", {}).get("technologies", [])),
+                rate_limit_detected=any(f.get("type") == "missing_rate_limiting" for f in validated),
+                recommended_concurrency=10 if len(validated) < 5 else 5,
+            )
+        )
+
+        # Crystallize validated findings into Cognitive Memory
+        for f in validated:
+            if isinstance(f, dict) and f.get("severity") in ["critical", "high", "medium"]:
+                memory.crystallize_pattern(
+                    target=target,
+                    vuln_type=f.get("vuln_type") or f.get("type", "unknown"),
+                    payload=f.get("payload", ""),
+                    waf_bypassed=f.get("waf_bypassed", False),
+                    confidence=f.get("confidence", 0.9),
+                    metadata={"location": f.get("location"), "cwe": f.get("cwe")},
+                )
+
         # 7. Remediation
         self.console.print(
             "[bold blue]󰋼[/bold blue] [white]Generating breach reports and auto-patches...[/white]"

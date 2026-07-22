@@ -138,8 +138,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("worker", help="Start background workflow processor")
 
     # 150+ Tools Catalog Command
-    tools_cmd = sub.add_parser("tools", help="Explore 150+ Security Tools Arsenal")
-    tools_cmd.add_argument("--category", help="Filter tools by category")
+    tools = sub.add_parser("tools", help="Browse 150+ integrated security tools catalog")
+    tools.add_argument("--category", "-c", help="Filter by tool category")
+
+    # Cognitive Memory Command
+    memory = sub.add_parser("memory", help="Inspect and query Aura Cognitive Memory")
+    memory.add_argument("--target", "-t", help="Filter memory by target domain")
+    memory.add_argument("--purge-decay", action="store_true", help="Apply memory decay and purge stale patterns")
 
     # 12 Specialized Agents Command
     sub.add_parser("agents", help="List 12 specialized AI swarm agents")
@@ -414,6 +419,40 @@ def main() -> None:
                 inst = "[green]INSTALLED[/green]" if status.get(key) else "[dim]AVAILABLE[/dim]"
                 table.add_row(key, meta["name"], meta["category"], meta["binary"], inst)
             console.print(table)
+        elif args.command == "memory":
+            from secagents.core.aura_memory import AuraMemoryManager
+            mem = AuraMemoryManager.get_instance()
+
+            if args.purge_decay:
+                purged = mem.apply_decay()
+                console.print(f"[success]✓ Memory decay applied: purged {purged} stale patterns.[/success]")
+
+            info = mem.inspect_memory(target=args.target)
+            console.print(
+                Panel(
+                    f"SDK Active: {info['sdk_available']}\nDatabase: {info['database_path']}\nTargets DNA Count: {info['target_dna_count']}\nCognitive Patterns: {info['cognitive_patterns_count']}",
+                    title="AURA COGNITIVE MEMORY STATUS",
+                    border_style="cyan",
+                )
+            )
+
+            if info["patterns"]:
+                p_table = Table(title="CRYSTALLIZED COGNITIVE PATTERNS", box=ROUNDED, expand=True)
+                p_table.add_column("TARGET", style="cyan")
+                p_table.add_column("VULN TYPE", style="bold white")
+                p_table.add_column("PAYLOAD", style="yellow")
+                p_table.add_column("WAF BYPASSED", justify="center")
+                p_table.add_column("CONFIDENCE", justify="center")
+
+                for p in info["patterns"]:
+                    p_table.add_row(
+                        p["target"],
+                        p["vuln_type"],
+                        p["payload"][:40] + ("..." if len(p["payload"]) > 40 else ""),
+                        "[green]YES[/green]" if p["waf_bypassed"] else "[dim]NO[/dim]",
+                        f"{int(p['confidence'] * 100)}%",
+                    )
+                console.print(p_table)
         elif args.command == "agents":
             from secagents.agents.specialized import (
                 IntelligentDecisionEngine, BugBountyWorkflowManager, CTFWorkflowManager,
