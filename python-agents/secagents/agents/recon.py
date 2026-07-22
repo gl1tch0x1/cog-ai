@@ -146,17 +146,30 @@ class ReconAgent(BaseAgent):
         async def _check_sub(prefix: str):
             sub = f"{prefix}.{clean_target}"
             url = f"https://{sub}"
+            from secagents.core.native import native_engine
+            # Fast C++ socket probe before full HTTP request
+            probe_res = native_engine.probe_port(sub, 443, timeout_ms=1000)
+            if not probe_res.get("open", False):
+                probe_res = native_engine.probe_port(sub, 80, timeout_ms=1000)
+                if not probe_res.get("open", False):
+                    return None
+
             try:
                 async with httpx.AsyncClient(timeout=3.0, verify=False) as client:
                     resp = await client.get(url)
                     return {
                         "type": "subdomain",
                         "value": sub,
-                        "metadata": {"discovery_method": "active_probe", "status_code": resp.status_code},
+                        "metadata": {"discovery_method": "native_cpp_probe", "status_code": resp.status_code, "latency_ms": probe_res.get("latency_ms", 0)},
                         "priority": "high" if prefix in ["api", "admin"] else "medium",
                     }
             except Exception:
-                return None
+                return {
+                    "type": "subdomain",
+                    "value": sub,
+                    "metadata": {"discovery_method": "native_cpp_socket_open", "latency_ms": probe_res.get("latency_ms", 0)},
+                    "priority": "medium",
+                }
 
         tasks = [_check_sub(p) for p in prefixes]
         results = await asyncio.gather(*tasks, return_exceptions=True)

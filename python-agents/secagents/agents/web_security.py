@@ -359,9 +359,10 @@ class WebSecurityAgent(BaseAgent):
             return None
 
     def _check_response(self, response: str, patterns: list[str]) -> bool:
-        """Check response for vulnerability patterns."""
+        """Check response for vulnerability patterns using native C++ engine when available."""
+        from secagents.core.native import native_engine
         for pattern in patterns:
-            if re.search(pattern, response, re.IGNORECASE):
+            if native_engine.match_signature(response, pattern):
                 return True
         return False
 
