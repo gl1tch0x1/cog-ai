@@ -61,19 +61,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let w_sched = Arc::clone(&scheduler);
     let w_bus = Arc::clone(&bus);
     let w_rl = Arc::clone(&rate_limiter);
+    let r_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379/0".to_string());
+
     tokio::spawn(async move {
+        let redis_client = redis::Client::open(r_url.as_str()).ok();
         loop {
             if let Some(task) = w_sched.dequeue_blocking().await {
                 // Enforce rate limit before dispatching
                 w_rl.lock().await.acquire().await;
                 tracing::info!(task_id = %task.id, agent = %task.agent, "Dispatching task");
+
+                let dispatch_payload = serde_json::json!({
+                    "task_id": task.id.to_string(),
+                    "agent": task.agent,
+                    "action": task.name,
+                    "input": task.input,
+                }).to_string();
+
+                if let Some(ref client) = redis_client {
+                    if let Ok(mut con) = client.get_async_connection().await {
+                        let _: Result<(), _> = redis::cmd("PUBLISH")
+                            .arg("secagents_tasks")
+                            .arg(&dispatch_payload)
+                            .query_async(&mut con)
+                            .await;
+                    }
+                }
+
                 w_bus.publish(Event::new(
                     EventType::TaskStarted, task.id,
                     serde_json::json!({"agent": task.agent, "name": task.name}),
-                )).await;
-                w_sched.complete(task.id).await;
-                w_bus.publish(Event::new(
-                    EventType::TaskCompleted, task.id, serde_json::json!({"agent": task.agent}),
                 )).await;
             }
         }

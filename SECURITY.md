@@ -247,6 +247,6 @@ go mod tidy
 ## Questions?
 
 - 📖 **Documentation**: [docs/](docs/)
-- 📧 **Email**: security@secagents.io
+- 📧 **Email**: [mraashish0x1@duck.com]
 - 🐛 **GitHub Issues**: For non-security issues
 - 💬 **Discussions**: For security best practices

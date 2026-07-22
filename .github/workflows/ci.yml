@@ -15,13 +15,7 @@ env:
   PYTHON_VERSION: "3.11"
   RUST_VERSION: "stable"
   GO_VERSION: "1.22"
-  NODE_VERSION: "20"
-  POSTGRES_DB: secagents
-  POSTGRES_USER: secagents
-  POSTGRES_PASSWORD: ci_test_password
-  DATABASE_URL: postgresql+asyncpg://secagents:ci_test_password@localhost:5432/secagents
   REDIS_URL: redis://localhost:6379/0
-  JWT_SECRET: ci-test-secret-do-not-use-in-production
   OPENAI_API_KEY: sk-test-dummy-key-for-ci
   ALLOWED_DOMAINS: "example.com,*.example.com"
 
@@ -42,8 +36,6 @@ jobs:
             language: rust
           - component: "Go (gofmt/vet)"
             language: go
-          - component: "Frontend (lint)"
-            language: frontend
 
     steps:
       - name: Checkout repository
@@ -63,11 +55,11 @@ jobs:
 
       - name: Run ruff check
         if: matrix.language == 'python'
-        run: ruff check python-agents/ api/ --output-format=github
+        run: ruff check python-agents/ --output-format=github
 
       - name: Run ruff format
         if: matrix.language == 'python'
-        run: ruff format python-agents/ api/ --check
+        run: ruff format python-agents/ --check
 
       # Rust
       - name: Set up Rust
@@ -105,23 +97,6 @@ jobs:
         if: matrix.language == 'go'
         run: cd go-services && go vet ./...
 
-      # Frontend
-      - name: Set up Node.js
-        if: matrix.language == 'frontend'
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-path: frontend/apex/package-lock.json
-
-      - name: Install dependencies
-        if: matrix.language == 'frontend'
-        run: cd frontend/apex && npm ci
-
-      - name: Run lint
-        if: matrix.language == 'frontend'
-        run: cd frontend/apex && npm run lint
-
   # ─────────────────────────────────────────────────────────────────────
   #  JOB 2: Type Checking
   # ─────────────────────────────────────────────────────────────────────
@@ -142,17 +117,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -e "python-agents/.[dev]"
-          pip install -e "api/.[dev]"
           pip install mypy
 
       - name: Run mypy (python-agents)
         run: mypy python-agents/secagents/ --ignore-missing-imports --no-strict-optional
 
-      - name: Run mypy (api)
-        run: mypy api/secagents_api/ --ignore-missing-imports --no-strict-optional
-
   # ─────────────────────────────────────────────────────────────────────
-  #  JOB 3: Python Tests (Agents & API)
+  #  JOB 3: Python Tests (Agents)
   # ─────────────────────────────────────────────────────────────────────
   test-python:
     name: "Tests — Python"
@@ -160,19 +131,6 @@ jobs:
     needs: lint
 
     services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U secagents"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
       redis:
         image: redis:7-alpine
         ports: ["6379:6379"]
@@ -192,30 +150,12 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
       - name: Install dependencies
         run: |
           pip install -e "python-agents/.[dev,browser]"
-          pip install -e "api/.[dev]"
 
       - name: Create reports directory
         run: mkdir -p reports
-
-      - name: Apply database schema
-        run: |
-          # Wait for postgres to be ready (even with health checks, sometimes a delay helps)
-          until pg_isready -h localhost -p 5432 -U ${{ env.POSTGRES_USER }}; do
-            echo "Waiting for postgres..."
-            sleep 1
-          done
-          
-          PGPASSWORD=${{ env.POSTGRES_PASSWORD }} psql \
-            -h localhost -U ${{ env.POSTGRES_USER }} -d ${{ env.POSTGRES_DB }} \
-            -f api/migrations/001_initial.sql
 
       - name: Run Agent tests
         run: |
@@ -228,17 +168,6 @@ jobs:
             -p no:warnings
         env:
           PYTHONPATH: python-agents
-
-      - name: Run API tests
-        run: |
-          pytest tests/integration/ \
-            -v --tb=short \
-            --junit-xml=reports/junit-api.xml \
-            --cov=secagents_api \
-            --cov-report=xml:reports/coverage-api.xml \
-            --asyncio-mode=auto
-        env:
-          PYTHONPATH: api
 
       - name: Upload results
         uses: actions/upload-artifact@v4
@@ -318,30 +247,7 @@ jobs:
         run: cd go-services && go test -v ./...
 
   # ─────────────────────────────────────────────────────────────────────
-  #  JOB 6: Frontend Build
-  # ─────────────────────────────────────────────────────────────────────
-  test-frontend:
-    name: "Build — Frontend"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-path: frontend/apex/package-lock.json
-
-      - name: Install dependencies
-        run: cd frontend/apex && npm ci
-
-      - name: Build
-        run: cd frontend/apex && npm run build
-
-  # ─────────────────────────────────────────────────────────────────────
-  #  JOB 7: Installer Validation
+  #  JOB 6: Installer Validation
   # ─────────────────────────────────────────────────────────────────────
   test-installer:
     name: "Validate Installer"
@@ -359,10 +265,10 @@ jobs:
         run: python -m py_compile installer.py
 
       - name: Dry run check
-        run: python installer.py --ci --no-db --no-test
+        run: python installer.py --no-start --no-test
 
   # ─────────────────────────────────────────────────────────────────────
-  #  JOB 8: Security Scan
+  #  JOB 7: Security Scan
   # ─────────────────────────────────────────────────────────────────────
   security-scan:
     name: "Security Scan"
@@ -391,12 +297,12 @@ jobs:
         continue-on-error: true
 
   # ─────────────────────────────────────────────────────────────────────
-  #  JOB 9: Status Summary
+  #  JOB 8: Status Summary
   # ─────────────────────────────────────────────────────────────────────
   summary:
     name: "Summary"
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test-python, smoke-tests, test-native, test-frontend, test-installer, security-scan]
+    needs: [lint, typecheck, test-python, smoke-tests, test-native, test-installer, security-scan]
     if: always()
     steps:
       - name: Report CI status
@@ -408,7 +314,6 @@ jobs:
           echo "| Type Check | ${{ needs.typecheck.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Python Tests | ${{ needs.test-python.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Native Tests | ${{ needs.test-native.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend Build | ${{ needs.test-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Smoke Tests | ${{ needs.smoke-tests.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Installer | ${{ needs.test-installer.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY

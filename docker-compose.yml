@@ -25,3 +25,13 @@ services:
     depends_on:
       redis: { condition: service_healthy }
 
+  worker:
+    build: { context: ., dockerfile: python-agents/Dockerfile }
+    command: ["python", "-m", "secagents.worker.runner"]
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD:-secagents_redis}@redis:6379/0
+      ALLOWED_DOMAINS: ${ALLOWED_DOMAINS:-example.com}
+    depends_on:
+      redis: { condition: service_healthy }
+
+

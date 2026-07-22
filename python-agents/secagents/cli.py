@@ -137,6 +137,18 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("hardware", help="Hardware-aware model optimization")
     sub.add_parser("worker", help="Start background workflow processor")
 
+    # 150+ Tools Catalog Command
+    tools_cmd = sub.add_parser("tools", help="Explore 150+ Security Tools Arsenal")
+    tools_cmd.add_argument("--category", help="Filter tools by category")
+
+    # 12 Specialized Agents Command
+    sub.add_parser("agents", help="List 12 specialized AI swarm agents")
+
+    # CTF Solver Workflow Command
+    ctf_cmd = sub.add_parser("ctf", help="Execute CTF challenge solver pipeline")
+    ctf_cmd.add_argument("--category", choices=["web", "pwn", "crypto", "forensics"], default="web", help="CTF challenge category")
+    ctf_cmd.add_argument("--input", required=True, help="Target URL, binary, or challenge input")
+
     return p
 
 
@@ -386,6 +398,48 @@ def main() -> None:
                     border_style="cyan",
                 )
             )
+        elif args.command == "tools":
+            from secagents.arsenal.registry import ToolRegistry
+            table = Table(title="150+ SECURITY TOOLS ARSENAL CATALOG", box=ROUNDED, expand=True)
+            table.add_column("KEY", style="bold cyan")
+            table.add_column("TOOL NAME", style="bold white")
+            table.add_column("CATEGORY", style="yellow")
+            table.add_column("BINARY", style="dim")
+            table.add_column("STATUS", justify="center")
+
+            status = ToolRegistry.list_installed_tools()
+            for key, meta in ToolRegistry.TOOLS_CATALOG.items():
+                if args.category and args.category.lower() not in meta["category"].lower():
+                    continue
+                inst = "[green]INSTALLED[/green]" if status.get(key) else "[dim]AVAILABLE[/dim]"
+                table.add_row(key, meta["name"], meta["category"], meta["binary"], inst)
+            console.print(table)
+        elif args.command == "agents":
+            from secagents.agents.specialized import (
+                IntelligentDecisionEngine, BugBountyWorkflowManager, CTFWorkflowManager,
+                CVEIntelligenceManager, AIExploitGenerator, VulnerabilityCorrelator,
+                TechnologyDetector, RateLimitDetector, FailureRecoverySystem,
+                PerformanceMonitor, ParameterOptimizer, GracefulDegradation
+            )
+            agents_list = [
+                IntelligentDecisionEngine(), BugBountyWorkflowManager(), CTFWorkflowManager(),
+                CVEIntelligenceManager(), AIExploitGenerator(), VulnerabilityCorrelator(),
+                TechnologyDetector(), RateLimitDetector(), FailureRecoverySystem(),
+                PerformanceMonitor(), ParameterOptimizer(), GracefulDegradation()
+            ]
+            table = Table(title="12 SPECIALIZED AI SWARM AGENTS", box=ROUNDED, expand=True)
+            table.add_column("AGENT NAME", style="bold cyan")
+            table.add_column("CLASS", style="bold white")
+            table.add_column("STATUS", justify="center", style="green")
+
+            for ag in agents_list:
+                table.add_row(ag.name, ag.__class__.__name__, "ACTIVE")
+            console.print(table)
+        elif args.command == "ctf":
+            from secagents.agents.specialized import CTFWorkflowManager
+            agent = CTFWorkflowManager()
+            out = asyncio.run(agent.execute({"category": args.category, "input": args.input}))
+            console.print(Panel(f"CTF Solver Output:\n{out.result}", title=f"CTF SOLVER — {args.category.upper()}", border_style="green"))
     except KeyboardInterrupt:
         console.print("\n[warning]⚠ Mission aborted by operator.[/warning]")
         sys.exit(130)

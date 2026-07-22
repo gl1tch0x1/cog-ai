@@ -145,12 +145,24 @@ class TestAgents:
         assert len(output.result["phases"]) > 0
 
     @pytest.mark.asyncio
-    async def test_recon_agent_discovery(self):
-        """Test recon agent's discovery capabilities."""
+    async def test_recon_agent_discovery(self, monkeypatch):
+        """Test recon agent's discovery capabilities with hermetic mocking."""
         from secagents.agents.recon import ReconAgent
+        import httpx
+
+        class MockResponse:
+            status_code = 200
+            text = '<html><a href="http://sub.example.com/login">Link</a></html>'
+
+        class MockAsyncClient:
+            async def get(self, *args, **kwargs):
+                return MockResponse()
+            async def aclose(self):
+                pass
+
+        monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: MockAsyncClient())
         
         agent = ReconAgent()
-        
         task = {
             "action": "subdomain_enum",
             "target": "example.com"

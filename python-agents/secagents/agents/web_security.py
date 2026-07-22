@@ -61,16 +61,16 @@ class WebSecurityAgent(BaseAgent):
                 r"\{\{.*\}\}",
                 r"\$\{.*\}",
                 r"\[%.*%\]",
-                r"49",  # 7*7 result
-                r"72",  # 8*9 result
-                r"7777777",  # 7*'7' result (Jinja2)
+                r"\b49\b",
+                r"\b72\b",
+                r"7777777",
             ],
             "payloads": [
                 "{{7*7}}",
                 "${7*7}",
                 "[%7*7%]",
                 "{{7*'7'}}",
-                "<%= 7*7 %>",  # ERB
+                "<%= 7*7 %>",
             ],
         },
         "lfi": {
@@ -283,15 +283,24 @@ class WebSecurityAgent(BaseAgent):
         # 1. Content-based testing
         if vuln_type in self.VULN_SIGNATURES:
             sig = self.VULN_SIGNATURES[vuln_type]
+            baseline = await self._send_payload(endpoint, "safe_canary_value", target)
             for payload in sig.get("payloads", []):
                 response = await self._send_payload(endpoint, payload, target)
                 if response and self._check_response(response, sig.get("patterns", [])):
+                    # Compute dynamic confidence based on baseline divergence
+                    conf = 0.7
+                    if baseline and not self._check_response(baseline, sig.get("patterns", [])):
+                        conf += 0.2
+                    if len(response) != len(baseline or ""):
+                        conf += 0.05
+                    conf = min(round(conf, 2), 0.95)
+
                     return {
                         "type": vuln_type,
                         "endpoint": endpoint,
                         "payload": payload,
                         "poc_url": f"{target}{endpoint}?param={payload}",
-                        "confidence": 0.8,
+                        "confidence": conf,
                         "severity": self._get_severity(vuln_type),
                         "cwe": self._get_cwe(vuln_type),
                         "method": "content-based",
