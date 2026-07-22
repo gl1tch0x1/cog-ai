@@ -443,24 +443,104 @@ Deliverables saved to: cog-ai-results/example.com_report.md
 
 ```text
 SecAgent/
-├── python-agents/           # Primary Python AI Swarm & CLI Package
-│   ├── pyproject.toml       # Package dependencies & metadata
+├── python-agents/                     # Primary Python AI Agent Swarm & CLI Engine
+│   ├── pyproject.toml                 # Package configuration, scripts, & dev dependencies
 │   └── secagents/
-│       ├── agents/          # Recon, Web, API, Web3, Validator, Reporter agents
-│       ├── core/            # Orchestrator, Worker Pool, Memory Graph
-│       ├── modules/         # Deterministic CVE checks & payload generators
-│       ├── pipeline/        # Unified ScanPipeline runner
-│       ├── vault/           # Environment loader & key validation
-│       └── cli.py           # Rich CLI entrypoint
-├── go-services/             # Go Microservices
-│   ├── recon/               # High-speed subdomain & HTTP probe engine
-│   └── scanners/            # Custom network scanner binaries
-├── rust-core/               # Rust Core Engine & Priority Scheduler
-├── docker-compose.yml       # Docker services configuration
-├── Makefile                 # Build, test, and execution targets
-├── installer.py             # Deployment engine installer
-├── update.py                # Intelligence & framework sync tool
-└── SKILL.md                 # Security hunting methodology reference
+│       ├── agents/                    # Autonomous Specialist Agent Swarms
+│       │   ├── api_security.py        # REST/GraphQL vulnerability prober & BOLA checker
+│       │   ├── base.py                # BaseAgent class with confidence scoring & standard formatting
+│       │   ├── keyhacks.py            # Local asset secret & credential leak scanner
+│       │   ├── planner.py             # Phase decomposer, resource allocator, risk identifier
+│       │   ├── recon.py               # Active DNS prober, httpx crawler, parameter discovery
+│       │   ├── report.py              # Markdown deliverable generator & finding summarizer
+│       │   ├── supervisor.py          # Action intent classifier & swarm director
+│       │   ├── validator.py           # Proof-of-Concept verification & replay engine
+│       │   ├── web3_security.py       # Smart contract auditor (EVM & Solana vulnerability prober)
+│       │   └── web_security.py        # Web vulnerability scanner (SQLi, XSS, SSTI, LFI, SSRF, RCE)
+│       ├── armada/                    # Swarm Handlers & Orchestration Tasks
+│       │   ├── handlers.py            # Task handler registration & routing
+│       │   └── swarm.py               # Parallel agent swarm runner
+│       ├── arsenal/                   # Heuristic Exploitation Probes
+│       │   └── exploits.py            # Arsenal payload probes & secondary validation
+│       ├── core/                      # Core System Infrastructure
+│       │   ├── memory.py              # Persistent memory storage
+│       │   ├── orchestrator.py        # Task DAG orchestrator & circuit breaker tracker
+│       │   ├── skill_manager.py       # SKILL.md parser & skill registration engine
+│       │   └── workers.py             # Async worker pool & queue manager
+│       ├── crucible/                  # Verification & Regression Framework
+│       │   ├── regression.py          # Test suite regression tracker
+│       │   └── validation.py          # Live PoC replay & linear-scaling time verifier
+│       ├── engine/                    # Context & Graph Processing
+│       │   ├── caveman.py             # Token-efficient prompt compressor
+│       │   ├── ci_notifier.py         # CI/CD webhook & alert dispatcher
+│       │   └── memory_graph.py        # Graph-based vulnerability relationship store
+│       ├── fortress/                  # Isolation & Sandboxing
+│       │   └── sandbox.py             # Docker Fortress execution isolation checks
+│       ├── hermes/                    # Retrospective Memory Engine
+│       │   ├── retrospective.py       # Post-scan analysis & learning feedback loop
+│       │   └── store.py               # Hermes persistent memory store
+│       ├── infra/                     # Operational Safeguards & Integrity
+│       │   ├── preflight.py           # System dependency & prerequisite verifier
+│       │   └── scope.py               # Fail-closed target domain scope enforcer
+│       ├── intel/                     # Threat Intelligence Integration
+│       │   ├── chaos_client.py        # ProjectDiscovery Chaos API integration
+│       │   └── shodan_client.py       # Shodan host intelligence integration
+│       ├── llm/                       # LLM Provider Abstraction
+│       │   ├── consensus.py           # Multi-provider agreement & consensus engine
+│       │   └── omni.py                # Unified LLM client (OpenAI, Anthropic, Gemini, Groq, DeepSeek)
+│       ├── modules/                   # Deterministic Detection Signatures
+│       │   └── cve_checks.py          # 31+ zero-false-positive CVE signatures & check definitions
+│       ├── operational/               # Environment & System Integrity
+│       │   └── integrity.py           # OS baseline security update & tool updater
+│       ├── pipeline/                  # Unified Scan Execution
+│       │   └── runner.py              # ScanPipeline orchestrator (Scope -> Preflight -> Swarm -> Report)
+│       ├── remediation/               # Auto-Fixing & Patching
+│       │   ├── patcher.py             # Auto-remediation code patcher
+│       │   └── reporter.py            # Final report formatter & deliverable generator
+│       ├── vault/                     # Operational Secret Storage
+│       │   └── env_loader.py          # Environment key loader & live API validation
+│       ├── whichllm/                  # Hardware-Aware Model Provisioning
+│       │   └── hardware.py            # Local GPU/CPU detector & Ollama auto-provisioner
+│       └── cli.py                     # Rich CLI Terminal User Interface & subcommand parser
+├── go-services/                       # High-Performance Go Microservices
+│   ├── recon/                         # High-Speed Recon Engine
+│   │   ├── crawler.go                 # Concurrent web page crawler & link extractor
+│   │   ├── httpprobe.go               # Multithreaded HTTP/HTTPS service prober
+│   │   ├── params.go                  # GET/POST parameter discovery engine
+│   │   ├── recon_test.go              # Unit test suite for Go recon
+│   │   └── subdomain.go               # Multithreaded DNS brute-force enumerator
+│   ├── scanners/                      # Network Scanners
+│   │   ├── portscan.go                # Fast TCP port scanner
+│   │   └── syn.go                     # Raw SYN packet scanner
+│   └── cli/                           # Go CLI Binary Build Entrypoint
+│       └── cmd/main.go                # Go CLI entrypoint
+├── rust-core/                         # Rust Engine & Priority Task Scheduler
+│   ├── Cargo.toml                     # Rust package manifest & dependencies
+│   └── src/
+│       ├── engine.rs                  # Core Rust execution engine
+│       ├── event_bus.rs               # Lock-free event dispatching bus
+│       ├── main.rs                    # Rust engine binary main entrypoint
+│       ├── policy.rs                  # Security policy evaluation engine
+│       ├── scheduler.rs               # Microsecond-latency task priority queue
+│       └── state.rs                   # System state tracker
+├── skills/                            # Modular Hunting Methodologies
+│   ├── bb-methodology/                # Bug bounty methodology guidelines
+│   ├── PromptInjection/               # LLM prompt injection audit playbooks
+│   ├── Recon/                         # Advanced reconnaissance techniques
+│   └── WebAssessment/                 # OWASP Top 10 assessment workflows
+├── tests/                             # Unified Test Suite
+│   └── unit/
+│       ├── test_agents_complete.py    # Unit tests for python agent swarms
+│       ├── test_comprehensive.py      # System orchestrator & worker tests
+│       └── test_cve_checks.py         # Signature & CVE verification tests
+├── docker-compose.yml                 # Production background microservices configuration
+├── Makefile                           # Unified build, test, and execution targets
+├── installer.py                       # Automated deployment & installation engine
+├── update.py                          # Intelligence & framework sync tool
+├── SKILL.md                           # Master hunting knowledge base reference
+├── LICENSE                            # MIT License distribution terms
+├── SECURITY.md                        # Security policy & vulnerability reporting
+└── README.md                          # Master documentation & architecture guide
 ```
 
 ---
