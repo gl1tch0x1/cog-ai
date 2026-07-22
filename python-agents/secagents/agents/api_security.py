@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import re
 from typing import Optional
 
@@ -39,10 +40,11 @@ class APISecurityAgent(BaseAgent):
     @property
     def client(self) -> httpx.AsyncClient:
         if self._client is None:
+            verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
             self._client = httpx.AsyncClient(
                 timeout=10.0,
                 follow_redirects=False,  # Important for CORS/Auth tests
-                verify=False,
+                verify=verify_ssl,
             )
         return self._client
 

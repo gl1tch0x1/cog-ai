@@ -251,6 +251,7 @@ def build_payloads(check_key: str, url: str) -> list[dict]:
         ],
         "cors": [
             {"header": "Origin", "value": f"https://{RUN_CANARY}.com", "method": "HEADER"},
+            {"header": "Origin", "value": "null", "method": "HEADER"},
         ],
         "idor": [
             {"param": "user_id", "value": "1", "method": "GET"},
@@ -313,8 +314,8 @@ def verify_finding(
     elif check_key == "cors":
         acao = response_headers.get("access-control-allow-origin", "")
         acac = response_headers.get("access-control-allow-credentials", "")
-        if f"{RUN_CANARY}.com" in acao:
-            return True, f"ACAO reflects arbitrary origin: {acao} (Credentials: {acac})"
+        if f"{RUN_CANARY}.com" in acao or acao == "null":
+            return True, f"ACAO reflects arbitrary/null origin: {acao} (Credentials: {acac})"
         elif acao == "*" and acac == "true":
             return True, "ACAO wildcard with credentials allowed"
         return False, ""

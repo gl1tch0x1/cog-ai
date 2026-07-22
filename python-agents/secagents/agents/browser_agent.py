@@ -82,18 +82,20 @@ class BrowserAgent(BaseAgent):
                     },
                     "engine": "playwright-chromium",
                 }
-        except Exception:
+        except Exception as e:
             # Fallback to HTTP inspection
             import httpx
+            import os
             try:
                 formatted_url = url if url.startswith("http") else f"https://{url}"
-                async with httpx.AsyncClient(timeout=5.0, verify=False) as client:
+                verify_ssl = os.environ.get("SECAGENT_VERIFY_SSL", "true").lower() != "false"
+                async with httpx.AsyncClient(timeout=5.0, verify=verify_ssl, follow_redirects=True) as client:
                     resp = await client.get(formatted_url)
                     headers = dict(resp.headers)
                     return {
-                        "title": "SecAgent Inspection Target",
+                        "title": resp.headers.get("server", "SecAgent Target Host"),
                         "dom_count": resp.text.count("<"),
-                        "forms": [{"action": "/submit", "method": "POST", "inputs": ["q", "id"]}],
+                        "forms": [],
                         "security_headers": {
                             "Content-Security-Policy": headers.get("content-security-policy", "missing"),
                             "X-Frame-Options": headers.get("x-frame-options", "missing"),
@@ -101,11 +103,12 @@ class BrowserAgent(BaseAgent):
                         },
                         "engine": "httpx-fallback",
                     }
-            except Exception:
+            except Exception as err:
                 return {
-                    "title": "SecAgent Target Page",
-                    "dom_count": 142,
-                    "forms": [{"action": "/login", "method": "POST", "inputs": ["username", "password"]}],
-                    "security_headers": {"Content-Security-Policy": "missing"},
-                    "engine": "static-fallback",
+                    "error": str(err),
+                    "title": "Navigation Failed",
+                    "dom_count": 0,
+                    "forms": [],
+                    "security_headers": {},
+                    "engine": "failed",
                 }
