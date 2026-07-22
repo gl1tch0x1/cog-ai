@@ -37,14 +37,14 @@
 - [Key Differentiators](#-key-differentiators)
 - [Capabilities Matrix](#-capabilities-matrix)
 - [Comprehensive System Architecture](#-comprehensive-system-architecture)
-  - [1. High-Level Topology \& Polyglot Engine](#1-high-level-topology--polyglot-engine)
-  - [2. End-to-End Autonomous Scan Lifecycle](#2-end-to-end-autonomous-scan-lifecycle)
+  - [1. High-Level System Topology \& Polyglot Engine](#1-high-level-system-topology--polyglot-engine)
+  - [2. Autonomous Scan Lifecycle Sequence](#2-autonomous-scan-lifecycle-sequence)
   - [3. Multi-Agent Swarm Decision Logic](#3-multi-agent-swarm-decision-logic)
   - [4. Multi-Provider LLM Fallback \& Consensus Engine](#4-multi-provider-llm-fallback--consensus-engine)
 - [Quick Start Guide](#-quick-start-guide)
 - [Installation Guide](#-installation-guide)
   - [Prerequisites](#prerequisites)
-  - [Method 1 — Automated Installation (Recommended)](#method-1--automated-installation-recommended)
+  - [Method 1 — Automated Installation Engine (Recommended)](#method-1--automated-installation-engine-recommended)
   - [Method 2 — Manual Package Installation](#method-2--manual-package-installation)
 - [Releases, Deployments \& Packages](#-releases-deployments--packages)
   - [🏷️ Releases](#️-releases)
@@ -52,9 +52,12 @@
   - [📦 Package Artifacts](#-package-artifacts)
 - [Configuration \& Operational Manifest](#-configuration--operational-manifest)
 - [Complete CLI Usage Reference](#-complete-cli-usage-reference)
-  - [Commands \& Subcommands](#commands--subcommands)
-- [Sample Deliverables \& Reports](#-sample-deliverables--reports)
+  - [Subcommand Specifications \& Flags](#subcommand-specifications--flags)
+- [Sample Deliverables \& Deliverable Schemas](#-sample-deliverables--deliverable-schemas)
+  - [1. Executive Markdown Deliverable](#1-executive-markdown-deliverable)
+  - [2. Machine-Readable JSON Schema](#2-machine-readable-json-schema)
 - [Project Directory Layout](#-project-directory-layout)
+- [Troubleshooting \& Operations Guide](#-troubleshooting--operations-guide)
 - [Contributing \& Security Policy](#-contributing--security-policy)
 - [License](#-license)
 
@@ -62,7 +65,7 @@
 
 ## ⚔️ What Is SecAgent
 
-Traditional vulnerability scanners are **rigid, noisy, and context-blind.** They execute static pattern matching, miss multi-stage attack vectors, and flood security operators with false positives.
+Traditional vulnerability scanners are **rigid, noisy, and context-blind.** They execute static pattern matching, miss complex multi-stage attack vectors, and flood security operators with false positives that waste valuable time.
 
 **SecAgent is an Autonomous, Pure-CLI Red Teaming & Offensive Intelligence Framework.**
 
@@ -82,7 +85,7 @@ Built for:
 2. **Polyglot Performance Engine**: High-speed Go microservices for concurrent network probing, Rust for microsecond priority scheduling, and Python for LLM multi-agent reasoning.
 3. **Zero False-Positive Validation**: Integrated `CrucibleValidator` replays proof-of-concept payloads against target endpoints to verify vulnerabilities before reporting.
 4. **Hardware-Aware Local Fallback**: Automatically detects GPU/CPU capabilities to provision local Ollama models (`llama3`, `mistral`, `codellama`) when cloud APIs are unavailable.
-5. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains.
+5. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains and agreement thresholding.
 
 ---
 
@@ -104,23 +107,24 @@ Built for:
 
 ## 🏛️ Comprehensive System Architecture
 
-### 1. High-Level Topology & Polyglot Engine
+### 1. High-Level System Topology & Polyglot Engine
 
 ```mermaid
 graph TB
     subgraph CLI_LAYER["🖥️ CLI Control Plane"]
         CLI["secagent CLI (Rich TUI)"]
-        SCOPE["Scope Gate (Enforcer)"]
-        VAULT["Vault Key Manager"]
+        SCOPE["Scope Gate (Fail-Closed Enforcer)"]
+        VAULT["Vault Key Manager (.env Loader)"]
+        PREFLIGHT["Preflight Integrity Checker"]
     end
 
     subgraph SWARM_LAYER["🧠 Python Agent Swarm"]
-        PLANNER["🎯 Planner Agent"]
-        RECON["🔍 Recon Agent (httpx + Async)"]
+        PLANNER["🎯 Planner Agent (DAG Builder)"]
+        RECON["🔍 Recon Agent (httpx + Async Prober)"]
         WEB["🌐 Web Security Agent"]
         API["⚡ API Security Agent"]
         WEB3["🕸️ Web3 Security Agent"]
-        VALIDATOR["🔬 Validator Agent"]
+        VALIDATOR["🔬 Validator Agent (Crucible)"]
         REPORTER["📊 Report Agent"]
     end
 
@@ -131,7 +135,8 @@ graph TB
     end
 
     CLI --> SCOPE
-    SCOPE --> VAULT
+    SCOPE --> PREFLIGHT
+    PREFLIGHT --> VAULT
     VAULT --> PLANNER
     PLANNER --> RECON
     PLANNER --> WEB
@@ -146,7 +151,7 @@ graph TB
 
 ---
 
-### 2. End-to-End Autonomous Scan Lifecycle
+### 2. Autonomous Scan Lifecycle Sequence
 
 ```mermaid
 sequenceDiagram
@@ -159,7 +164,7 @@ sequenceDiagram
     participant Reporter as Report Generator
 
     Operator->>Pipeline: secagent scan -t target.com --depth standard
-    Pipeline->>Pipeline: Enforce Scope & Run Preflight Checks
+    Pipeline->>Pipeline: Enforce Scope & Run Preflight System Checks
     Pipeline->>Swarm: Initialize Neural Swarm & Decompose Objectives
     Swarm->>Recon: Execute Active Subdomain & HTTP Probing
     Recon-->>Swarm: Return Active Hosts, Services & Parameters
@@ -167,7 +172,7 @@ sequenceDiagram
     Swarm-->>Validator: Submit Raw Finding Signals
     Validator->>Validator: Replay PoC Payloads & Linear-Scale Latency Checks
     Validator-->>Reporter: Return 100% Confirmed Vulnerabilities
-    Reporter->>Operator: Render Mission Intelligence Summary & Save Reports
+    Reporter->>Operator: Render Mission Intelligence Summary & Save Deliverables
 ```
 
 ---
@@ -234,11 +239,11 @@ cd cog-ai
 # 2. Run the automated deployment engine
 python installer.py
 
-# 3. Configure API keys (optional — local Ollama fallback supported)
+# 3. Configure environment secrets
 cp .env.example .env
 nano .env  # Add OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY
 
-# 4. Run an autonomous scan
+# 4. Initiate an autonomous red-team scan
 secagent scan --target example.com --depth standard
 ```
 
@@ -257,7 +262,7 @@ secagent scan --target example.com --depth standard
 
 ---
 
-### Method 1 — Automated Installation (Recommended)
+### Method 1 — Automated Installation Engine (Recommended)
 
 The installer sets up virtual environments, mounts core dependencies, creates entrypoints, and verifies system integrity:
 
@@ -373,7 +378,7 @@ options:
   --version             show program's version number and exit
 ```
 
-### Commands & Subcommands
+### Subcommand Specifications & Flags
 
 #### 1. `secagent scan` — Autonomous Red-Team Pipeline
 ```bash
@@ -388,7 +393,7 @@ Options:
   --no-arsenal            Skip heuristic Arsenal probes
   --insecure              Bypass SSL/TLS verification
   --setup-local-llm       Auto-provision local Ollama model
-  --results-dir PATH      Output directory for deliverables
+  --results-dir PATH      Output directory for deliverables (default: cog-ai-results)
 ```
 
 #### 2. `secagent vault` — Key Integrity Manager
@@ -411,30 +416,58 @@ secagent preflight
 secagent hardware
 ```
 
+#### 6. `secagent update` — Intelligence Synchronization
+```bash
+secagent update
+```
+
 ---
 
-## 📊 Sample Deliverables & Reports
+## 📊 Sample Deliverables & Deliverable Schemas
 
-### Terminal Telemetry Output
-```text
-╔══════════════════════════════════════════════════════════════════╗
-║          SecAgents — Elite Red Team Deployment Engine           ║
-╚══════════════════════════════════════════════════════════════════╝
+### 1. Executive Markdown Deliverable
+```markdown
+# 🛡️ Mission Intelligence Deliverable: example.com
 
-INITIATING OPERATION: example.com
-Parameters: depth=standard, workers=8
+## Executive Summary
+SecAgent executed an autonomous security audit against target domain `example.com`. 
+A total of **3 validated vulnerabilities** were extracted with zero false positives.
 
-MISSION INTELLIGENCE SUMMARY
-┌──────────┬──────────────────────────────┬──────────────────┬────────────┐
-│ SEVERITY │ VULNERABILITY                │ TARGET ENDPOINT  │ CONFIDENCE │
-├──────────┼──────────────────────────────┼──────────────────┼────────────┤
-│ CRITICAL │ SQL Injection                │ /api/users       │    95%     │
-│ HIGH     │ Reflected XSS                │ /search?q=       │    90%     │
-│ HIGH     │ Insecure Direct Object Ref    │ /api/users/102   │    85%     │
-└──────────┴──────────────────────────────┴──────────────────┴────────────┘
+### Key Finding Matrix
+| Severity | Vulnerability | Location | Confidence | CWE |
+| :--- | :--- | :--- | :---: | :--- |
+| **CRITICAL** | SQL Injection | `/api/users?id=` | 95% | CWE-89 |
+| **HIGH** | Reflected XSS | `/search?q=` | 90% | CWE-79 |
+| **HIGH** | Insecure Direct Object Reference | `/api/users/102` | 85% | CWE-639 |
 
-✅ OPERATION COMPLETE — 3 Validated Signal(s) Extracted.
-Deliverables saved to: cog-ai-results/example.com_report.md
+---
+
+## Technical Finding Details
+
+### 1. SQL Injection (`CWE-89`)
+- **Target URL**: `https://example.com/api/users`
+- **Method**: `GET`
+- **Payload**: `' UNION SELECT NULL--`
+- **Proof Signal**: `You have an error in your SQL syntax near '1'`
+```
+
+### 2. Machine-Readable JSON Schema (`target.json`)
+```json
+{
+  "target": "example.com",
+  "domain": "example.com",
+  "findings": [
+    {
+      "type": "sqli",
+      "severity": "critical",
+      "url": "https://example.com/api/users",
+      "payload": "' UNION SELECT NULL--",
+      "confidence": 0.95,
+      "cwe": "CWE-89",
+      "poc_url": "https://example.com/api/users?id=' UNION SELECT NULL--"
+    }
+  ]
+}
 ```
 
 ---
@@ -541,6 +574,30 @@ SecAgent/
 ├── LICENSE                            # MIT License distribution terms
 ├── SECURITY.md                        # Security policy & vulnerability reporting
 └── README.md                          # Master documentation & architecture guide
+```
+
+---
+
+## 🛠️ Troubleshooting & Operations Guide
+
+### Common Operational Scenarios
+
+#### 1. Bypassing Docker Sandbox Isolation
+If Docker is not running or sandbox isolation is not required:
+```bash
+secagent scan --target example.com --no-sandbox
+```
+
+#### 2. Provisioning Offline Local LLM Models
+When running in air-gapped environments without cloud API keys:
+```bash
+secagent scan --target target.local --setup-local-llm
+```
+
+#### 3. Resolving SSL Certificate Warnings
+For internal staging environments with self-signed SSL certificates:
+```bash
+secagent scan --target https://staging.local --insecure
 ```
 
 ---
