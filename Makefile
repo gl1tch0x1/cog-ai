@@ -3,7 +3,7 @@
 all: build
 
 # --- Build ---
-build: build-rust build-go build-python build-frontend
+build: build-rust build-go build-python
 
 build-rust:
 	cd rust-core && cargo build --release
@@ -15,10 +15,6 @@ build-go:
 
 build-python:
 	cd python-agents && pip install -e .
-	cd api && pip install -e .
-
-build-frontend:
-	cd frontend/apex && npm ci && npm run build
 
 # --- Test ---
 test: test-rust test-go test-python
@@ -32,14 +28,6 @@ test-go:
 
 test-python:
 	cd python-agents && pytest
-	cd api && pytest
-
-# --- Dev ---
-dev-api:
-	cd api && uvicorn secagents_api.main:app --reload --port 8000
-
-dev-frontend:
-	cd frontend/apex && npm run dev
 
 # --- Docker ---
 docker-up:
@@ -52,4 +40,4 @@ docker-down:
 clean:
 	cd rust-core && cargo clean
 	cd go-services/recon && go clean
-	rm -rf frontend/apex/.next
+

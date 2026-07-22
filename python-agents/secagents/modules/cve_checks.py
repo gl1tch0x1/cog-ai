@@ -455,3 +455,19 @@ def verify_finding(
         return False, ""
 
     return False, ""
+
+
+def generate_sqli_payloads(url: str = "") -> list[str]:
+    """Generate SQL injection payload strings."""
+    return [p.get("value", "") for p in build_payloads("sqli", url) if p.get("value")]
+
+
+def generate_xss_payloads(url: str = "") -> list[str]:
+    """Generate XSS payload strings."""
+    return [p.get("value", "") for p in build_payloads("xss", url) if p.get("value")]
+
+
+def generate_ssti_payloads(url: str = "") -> list[str]:
+    """Generate SSTI payload strings."""
+    return [p.get("value", "") for p in build_payloads("ssti", url) if p.get("value")]
+

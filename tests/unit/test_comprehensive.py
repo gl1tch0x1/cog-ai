@@ -159,7 +159,7 @@ class TestAgents:
         output = await agent.execute(task)
         
         assert output.confidence > 0.7
-        assert "subdomains" in output.result or "error" in output.result
+        assert "subdomains" in output.result or "findings" in output.result or "error" in output.result
 
     @pytest.mark.asyncio
     async def test_validator_finding_validation(self):

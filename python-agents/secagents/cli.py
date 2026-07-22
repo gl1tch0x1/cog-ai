@@ -25,7 +25,7 @@ from rich.progress import (
 )
 from rich.text import Text
 from rich.theme import Theme
-from rich.box import ROUNDED, HEAVY_EDGE
+from rich.box import ROUNDED, DOUBLE_EDGE
 
 from secagents import __version__
 from secagents.operational.integrity import check_and_apply_tool_update

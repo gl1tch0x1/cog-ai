@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 import shutil
@@ -31,10 +30,9 @@ def bootstrap_rich():
 if not bootstrap_rich():
     sys.exit(1)
 
-from rich.console import Console, Group
+from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.live import Live
 from rich.text import Text
 from rich.theme import Theme
@@ -106,23 +104,26 @@ def main():
         ui.update_log("Verifying Git uplink integrity...")
         if not shutil.which("git"):
             ui.update_log("Git binary not detected. Uplink failed.", "error")
-            time.sleep(2); return
+            time.sleep(2)
+            return
         
         # 2. Connection
         ui.update_log("Establishing secure connection to origin...")
         fetch = run_git("git fetch origin", root)
         if fetch.returncode != 0:
             ui.update_log(f"Synchronization failed: {fetch.stderr.strip()[:50]}...", "error")
-            time.sleep(2); return
+            time.sleep(2)
+            return
             
         # 3. Delta Analysis
         ui.update_log("Analyzing intelligence delta...")
         local_rev = run_git("git rev-parse HEAD", root).stdout.strip()
         try:
             remote_rev = run_git("git rev-parse @{u}", root).stdout.strip()
-        except:
+        except Exception:
             ui.update_log("Could not resolve upstream branch.", "error")
-            time.sleep(2); return
+            time.sleep(2)
+            return
             
         ui.layout["main"].update(ui.render_main())
 

@@ -28,9 +28,15 @@ class MemoryGraph:
                 key = f"{k}:{v}"
                 self._index.setdefault(key, set()).add(node_id)
 
+    def add_entity(self, node_id: str, type_name: str) -> None:
+        self.add_node(node_id, type=type_name)
+
     def add_edge(self, source: str, target: str, relation: str) -> None:
         with self._lock:
             self._edges.append({"source": source, "target": target, "relation": relation})
+
+    def add_relationship(self, source: str, relation: str, target: str) -> None:
+        self.add_edge(source, target, relation)
 
     def query(self, **filters) -> list[dict]:
         """Query nodes by attribute filters using index."""
@@ -54,6 +60,9 @@ class MemoryGraph:
                 for e in self._edges
                 if e["source"] == node_id and (relation is None or e["relation"] == relation)
             ]
+
+    def get_related(self, node_id: str, relation: str | None = None) -> list[str]:
+        return self.neighbors(node_id, relation)
 
     def save(self) -> None:
         if not self._path:

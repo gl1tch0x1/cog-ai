@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable
+
+logger = logging.getLogger(__name__)
 
 
 class WorkerState(str, Enum):
@@ -29,29 +32,57 @@ class Worker:
 @dataclass
 class QueuedTask:
     id: str
-    executor: Callable
-    args: dict
+    executor: Callable = field(default_factory=lambda: (lambda **kw: None))
+    args: dict = field(default_factory=dict)
     priority: int = 0  # lower = higher priority
     created_at: float = field(default_factory=time.time)
+    input: dict = field(default_factory=dict)
 
     def __lt__(self, other: QueuedTask) -> bool:
         return self.created_at < other.created_at
+
+# Compatibility alias for task queue
+Task = QueuedTask
+
+
+class TaskQueue:
+    """Task queue compatibility wrapper."""
+
+    def __init__(self, max_size: int = 100):
+        self.max_size = max_size
+        self._items: list[QueuedTask] = []
+
+    def add(self, task: QueuedTask) -> None:
+        self._items.append(task)
+
+    def get(self) -> QueuedTask:
+        if not self._items:
+            raise IndexError("pop from empty queue")
+        return self._items.pop(0)
+
+    @property
+    def qsize(self) -> int:
+        return len(self._items)
 
 
 class WorkerPool:
     """Async worker pool with heartbeat monitoring and task queue."""
 
-    def __init__(self, size: int = 4, heartbeat_interval: float = 5.0):
-        self.size = size
+    def __init__(self, size: int = 4, num_workers: int | None = None, heartbeat_interval: float = 5.0):
+        self.size = num_workers if num_workers is not None else size
         self._workers: dict[str, Worker] = {}
         self._queue: asyncio.PriorityQueue = asyncio.PriorityQueue()
         self._heartbeat_interval = heartbeat_interval
         self._running = False
         self._tasks: list[asyncio.Task] = []
 
-    async def start(self) -> None:
+    async def start(self, queue: TaskQueue | None = None) -> None:
         """Start worker pool and heartbeat monitor."""
         self._running = True
+        if queue:
+            while queue.qsize > 0:
+                task = queue.get()
+                await self.submit(task.executor, task.args)
         for _ in range(self.size):
             w = Worker()
             self._workers[w.id] = w
@@ -88,8 +119,8 @@ class WorkerPool:
                         await task.executor(**task.args)
                     else:
                         await asyncio.to_thread(task.executor, **task.args)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.error("Worker task execution failed: %s", exc, exc_info=True)
 
                 worker.tasks_completed += 1
                 worker.current_task = None
@@ -119,6 +150,10 @@ class WorkerPool:
                     del self._workers[wid]
                 elif elapsed > self._heartbeat_interval * 2:
                     w.state = WorkerState.SUSPECT
+
+    @property
+    def is_running(self) -> bool:
+        return self._running
 
     @property
     def stats(self) -> dict:

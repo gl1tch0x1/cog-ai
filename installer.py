@@ -9,16 +9,14 @@
 from __future__ import annotations
 
 import argparse
-import os
 import platform
 import secrets
 import shutil
-import socket
 import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional
 
 def bootstrap_rich():
     try:
@@ -36,10 +34,9 @@ def bootstrap_rich():
 if not bootstrap_rich():
     sys.exit(1)
 
-from rich.console import Console, Group
+from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn
 from rich.live import Live
 from rich.text import Text
 from rich.layout import Layout
@@ -63,15 +60,13 @@ IS_WIN = platform.system() == "Windows"
 
 # ─── Paths ───────────────────────────────────────────────────────────────────
 ROOT        = Path(__file__).parent.resolve()
-VENV_DIR    = ROOT / ".venv"
+VENV_DIR    = ROOT / "venv" if (ROOT / "venv").exists() else ROOT / ".venv"
 PYTHON_AGENTS = ROOT / "python-agents"
-API_DIR     = ROOT / "api"
 ENV_FILE    = ROOT / ".env"
 
 PYTHON_EXEC = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("python.exe" if IS_WIN else "python"))
 PIP_EXEC    = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("pip.exe" if IS_WIN else "pip"))
 PYTEST_EXEC = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("pytest.exe" if IS_WIN else "pytest"))
-UVICORN_EXEC = str(VENV_DIR / ("Scripts" if IS_WIN else "bin") / ("uvicorn.exe" if IS_WIN else "uvicorn"))
 
 # ─── UI Components ───────────────────────────────────────────────────────────
 
@@ -153,8 +148,10 @@ def run_preflight(args: argparse.Namespace) -> bool:
         return False
     
     for tool in ["git", "docker", "node"]:
-        if shutil.which(tool): ui.update_log(f"Binary: {tool} [FOUND]", "success")
-        else: ui.update_log(f"Binary: {tool} [MISSING]", "warning")
+        if shutil.which(tool):
+            ui.update_log(f"Binary: {tool} [FOUND]", "success")
+        else:
+            ui.update_log(f"Binary: {tool} [MISSING]", "warning")
             
     return True
 
@@ -179,15 +176,15 @@ def install_arsenal(args: argparse.Namespace) -> bool:
         run_cmd([PIP_EXEC, "install", "--only-binary", ":all:", dep, "--quiet"])
     
     packages = [
-        ("Core Agents", PYTHON_AGENTS, ".[dev,browser]"),
-        ("Orchestrator API", API_DIR, ".[dev]"),
+        ("Core Agents Framework", PYTHON_AGENTS, ".[dev,browser]"),
     ]
     for name, path, extras in packages:
         if path.exists():
             ui.update_log(f"Mounting {name}...")
             res = run_cmd([PIP_EXEC, "install", "--prefer-binary", "-e", extras], cwd=path)
             if res.returncode != 0:
-                if args.docker: ui.update_log(f"{name} failed (non-fatal in docker)", "warning")
+                if args.docker:
+                    ui.update_log(f"{name} failed (non-fatal in docker)", "warning")
                 else: 
                     ui.update_log(f"{name} mount failed: {res.stderr[:50]}...", "error")
                     return False
@@ -196,9 +193,8 @@ def install_arsenal(args: argparse.Namespace) -> bool:
 def configure_intel() -> bool:
     ui.update_log("Generating operational intelligence manifest...")
     if not ENV_FILE.exists():
-        db_pass = secrets.token_urlsafe(24)
         jwt_sec = secrets.token_urlsafe(48)
-        content = f"DB_PASSWORD={db_pass}\nJWT_SECRET={jwt_sec}\nALLOWED_DOMAINS=example.com\n"
+        content = f"JWT_SECRET={jwt_sec}\nALLOWED_DOMAINS=example.com\n"
         ENV_FILE.write_text(content)
         ui.update_log("Intel manifest (.env) created.", "success")
     return True
@@ -276,11 +272,13 @@ def main():
             ui.layout["footer"].update(Panel(Text(f"OPERATING: {name}", justify="center", style="bold white"), box=ROUNDED, border_style="magenta"))
             
             try:
-                if func(): ui.update_phase(i, "[green]SUCCESS[/green]")
+                if func():
+                    ui.update_phase(i, "[green]SUCCESS[/green]")
                 else:
                     ui.update_phase(i, "[red]FAILED[/red]")
                     overall_success = False
-                    if not args.docker: break
+                    if not args.docker:
+                        break
             except Exception as e:
                 ui.update_log(f"Phase {name} crash: {e}", "error")
                 ui.update_phase(i, "[bold red]CRASH[/red]")
@@ -292,42 +290,6 @@ def main():
             time.sleep(0.4)
 
     print_final_report(overall_success)
-    
-    if overall_success and not args.no_start and not args.docker:
-        ignite_api()
-
-def ignite_api():
-    """Starts the API server with port conflict resolution."""
-    console.print("\n[bold cyan]󱐋 IGNITING API CONTROL PLANE...[/bold cyan]")
-    
-    port = 8000
-    # Check if port is occupied
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        if s.connect_ex(('localhost', port)) == 0:
-            console.print(f"[warning]󱈸 Port {port} is occupied. Attempting to clear path...[/warning]")
-            if not IS_WIN:
-                # Unix-style cleanup
-                try:
-                    subprocess.run(["fuser", "-k", f"{port}/tcp"], capture_output=True)
-                    time.sleep(1)
-                except: pass
-            else:
-                # Windows cleanup
-                try:
-                    res = subprocess.run(["netstat", "-ano"], capture_output=True, text=True)
-                    for line in res.stdout.splitlines():
-                        if f":{port}" in line and "LISTENING" in line:
-                            pid = line.strip().split()[-1]
-                            subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
-                            time.sleep(1)
-                except: pass
-
-    try:
-        subprocess.run([UVICORN_EXEC, "secagents_api.main:app", "--host", "0.0.0.0", "--port", str(port)])
-    except KeyboardInterrupt:
-        console.print("\n[bold yellow]⚠ Mission terminated by operator.[/bold yellow]")
-    except Exception as e:
-        console.print(f"[error]󰅚 API Ignition failed: {e}[/error]")
 
 if __name__ == "__main__":
     main()

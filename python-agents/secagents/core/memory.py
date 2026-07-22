@@ -137,3 +137,17 @@ class DualMemory:
     @property
     def runtime_size(self) -> int:
         return len(self._runtime)
+
+
+class PersistentMemory:
+    """In-memory key-value dictionary store for persistent findings."""
+
+    def __init__(self):
+        self._store: dict[str, Any] = {}
+
+    def store(self, key: str, value: Any) -> None:
+        self._store[key] = value
+
+    def retrieve(self, key: str) -> Any:
+        return self._store.get(key)
+
