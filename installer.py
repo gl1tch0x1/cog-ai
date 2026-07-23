@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import platform
 import secrets
 import shutil
@@ -207,6 +208,19 @@ def create_entrypoints() -> bool:
         p = Path("secagent")
         p.write_text(f"#!/bin/bash\n\"{PYTHON_EXEC}\" -m secagents \"$@\"")
         p.chmod(0o755)
+        # Attempt system PATH placement on Linux/macOS (e.g. /usr/local/bin or ~/.local/bin)
+        target_dirs = [Path("/usr/local/bin"), Path.home() / ".local" / "bin"]
+        for target_dir in target_dirs:
+            if target_dir.exists() and os.access(target_dir, os.W_OK):
+                try:
+                    sym = target_dir / "secagent"
+                    if sym.exists() or sym.is_symlink():
+                        sym.unlink()
+                    sym.symlink_to(p.resolve())
+                    ui.update_log(f"Linked global entrypoint to {sym}", "success")
+                    break
+                except Exception:
+                    pass
     return True
 
 def run_tests() -> bool:
@@ -235,7 +249,8 @@ def print_final_report(success: bool):
     table.add_column("DESCRIPTION", style="dim")
     
     cli = "secagent" if not IS_WIN else "secagent.bat"
-    table.add_row(f"./{cli} scan -t <target>", "Initiate autonomous red-team scan")
+    table.add_row(f"./{cli} scan -t <target>", "Initiate scan (from project root directory)")
+    table.add_row(f"{cli} scan -t <target>", "Initiate scan (if installed globally or venv active)")
     table.add_row(f"./{cli} vault --validate", "Audit operational secret integrity")
     table.add_row(f"./{cli} update", "Synchronize framework intelligence")
     
