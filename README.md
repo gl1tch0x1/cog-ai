@@ -1,13 +1,6 @@
-<div align="center">
-
-```text
-    _____           ___                    __
-   / ___/___  _____/   | ____ ____  ____  / /______
-   \__ \/ _ \/ ___/ /| |/ __ `/ _ \/ __ \/ __/ ___/
-  ___/ /  __/ /__/ ___ / /_/ /  __/ / / / /_(__  )
- /____/\___/\___/_/  |_\__, /\___/_/ /_/_/   \___/
-                      /____/
-```
+<p align="center">
+  <img src="docs/assets/secagent_logo.png" alt="SecAgent Logo" width="380">
+</p>
 
 **Autonomous Offensive AI Framework for Red Teams & Security Researchers**
 
