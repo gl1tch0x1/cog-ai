@@ -28,8 +28,8 @@ def bootstrap_rich():
         try:
             subprocess.run([sys.executable, "-m", "pip", "install", "rich", "--quiet"], check=True)
             return True
-        except:
-            print("󰅚 Bootstrap failed. Please install 'rich' manually: pip install rich")
+        except (subprocess.CalledProcessError, OSError) as e:
+            print(f"󰅚 Bootstrap failed ({e}). Please install 'rich' manually: pip install rich")
             return False
 
 if not bootstrap_rich():
@@ -219,8 +219,8 @@ def create_entrypoints() -> bool:
                     sym.symlink_to(p.resolve())
                     ui.update_log(f"Linked global entrypoint to {sym}", "success")
                     break
-                except Exception:
-                    pass
+                except OSError as err:
+                    ui.update_log(f"Could not link to {target_dir}: {err}", "warning")
     return True
 
 def run_tests() -> bool:

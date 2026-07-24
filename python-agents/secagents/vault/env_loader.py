@@ -195,8 +195,8 @@ class Vault:
                 if resp.status_code == 401:
                     return KeyReport(name, KeyStatus.INVALID, masked, "Invalid Shodan key")
                 return KeyReport(name, KeyStatus.PRESENT, masked, f"Shodan {resp.status_code}")
-        except Exception as e:
-            return KeyReport(name, KeyStatus.PRESENT, masked, str(e)[:60])
+        except (httpx.HTTPError, OSError) as e:
+            return KeyReport(name, KeyStatus.PRESENT, masked, f"Shodan probe error: {str(e)[:50]}")
 
     async def _probe_chaos(self, name: str, key: str) -> KeyReport:
         masked = mask_secret(key)
@@ -211,8 +211,8 @@ class Vault:
                 if resp.status_code == 401:
                     return KeyReport(name, KeyStatus.INVALID, masked, "Invalid Chaos key")
                 return KeyReport(name, KeyStatus.PRESENT, masked, f"Chaos {resp.status_code}")
-        except Exception as e:
-            return KeyReport(name, KeyStatus.PRESENT, masked, str(e)[:60])
+        except (httpx.HTTPError, OSError) as e:
+            return KeyReport(name, KeyStatus.PRESENT, masked, f"Chaos probe error: {str(e)[:50]}")
 
     def print_status(self, use_color: bool = True) -> None:
         icon = {
