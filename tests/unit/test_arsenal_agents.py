@@ -49,7 +49,8 @@ def test_tool_registry_catalog():
 
 
 @pytest.mark.asyncio
-async def test_browser_agent():
+async def test_browser_agent(monkeypatch):
+    monkeypatch.setenv("ALLOWED_DOMAINS", "example.com")
     agent = BrowserAgent()
     out = await agent.execute({"target_url": "https://example.com"})
     assert out.confidence > 0.8

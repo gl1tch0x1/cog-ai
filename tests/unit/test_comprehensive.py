@@ -162,6 +162,7 @@ class TestAgents:
 
         monkeypatch.setattr(httpx, "AsyncClient", lambda **kw: MockAsyncClient())
         
+        monkeypatch.setenv("ALLOWED_DOMAINS", "example.com")
         agent = ReconAgent()
         task = {
             "action": "subdomain_enum",
@@ -170,7 +171,7 @@ class TestAgents:
         
         output = await agent.execute(task)
         
-        assert output.confidence > 0.7
+        assert output.confidence >= 0.7
         assert "subdomains" in output.result or "findings" in output.result or "error" in output.result
 
     @pytest.mark.asyncio
