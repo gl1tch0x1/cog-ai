@@ -8,6 +8,7 @@ import httpx
 
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
 from secagents.prompts import RECON_PROMPT
+from secagents.infra.scope import enforce_scope, ScopeViolationError
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +179,13 @@ class ReconAgent(BaseAgent):
 
         for res in results:
             if isinstance(res, dict) and res:
-                findings.append(res)
+                # Validate discovered subdomain against ALLOWED_DOMAINS
+                try:
+                    enforce_scope(res["value"])
+                    findings.append(res)
+                except ScopeViolationError:
+                    self.logger.debug(f"Subdomain {res['value']} filtered by scope policy")
+                    continue
 
         self.logger.info(f"Found {len(findings)} resolved subdomains")
         return {

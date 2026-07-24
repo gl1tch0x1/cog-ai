@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 import httpx
 
 from secagents.agents.base import AgentConfig, AgentOutput, AgentRole, BaseAgent
+from secagents.infra.scope import enforce_scope, ScopeViolationError
 
 
 class BrowserAgent(BaseAgent):
@@ -37,6 +38,19 @@ class BrowserAgent(BaseAgent):
             )
 
         target_url = raw_url if raw_url.startswith(("http://", "https://")) else f"https://{raw_url}"
+
+        # Validate target URL against ALLOWED_DOMAINS
+        try:
+            enforce_scope(target_url)
+        except ScopeViolationError as e:
+            self.logger.warning(f"Target URL {target_url} blocked by scope policy: {e}")
+            return AgentOutput(
+                agent=self.name,
+                role=self.role,
+                result={"error": "Target not in ALLOWED_DOMAINS"},
+                confidence=0.0,
+                error=str(e),
+            )
 
         self.logger.info(f"Navigating to {target_url} via Headless Browser Agent")
         analysis = await self._analyze_page(target_url)

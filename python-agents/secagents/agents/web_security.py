@@ -10,6 +10,7 @@ from typing import Optional
 import httpx
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
 from secagents.prompts import WEB_SECURITY_PROMPT
+from secagents.infra.scope import enforce_scope, ScopeViolationError
 
 logger = logging.getLogger(__name__)
 
@@ -273,6 +274,20 @@ class WebSecurityAgent(BaseAgent):
         findings = []
         sem = asyncio.Semaphore(10)
 
+        # Validate all endpoints against ALLOWED_DOMAINS
+        scoped_endpoints = []
+        for endpoint in endpoints:
+            try:
+                enforce_scope(endpoint)
+                scoped_endpoints.append(endpoint)
+            except ScopeViolationError:
+                self.logger.debug(f"Endpoint {endpoint} filtered by scope policy")
+                continue
+
+        if not scoped_endpoints:
+            self.logger.warning("No endpoints passed scope validation")
+            return []
+
         async def _test_worker(endpoint: str, vuln_type: str):
             async with sem:
                 res = await self._test(endpoint, vuln_type, target)
@@ -281,7 +296,7 @@ class WebSecurityAgent(BaseAgent):
 
         tasks = [
             _test_worker(endpoint, vuln_type)
-            for endpoint in endpoints
+            for endpoint in scoped_endpoints
             for vuln_type in vuln_types
         ]
         await asyncio.gather(*tasks, return_exceptions=True)

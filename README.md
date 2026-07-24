@@ -20,7 +20,7 @@
 [![C++ Core](https://img.shields.io/badge/core-c%2B%2B20-blue.svg)](https://isocpp.org/)
 [![Rust Core](https://img.shields.io/badge/core-rust-orange.svg)](https://www.rust-lang.org/)
 [![Go Recon](https://img.shields.io/badge/recon-go-cyan.svg)](https://go.dev/)
-[![Tests](https://img.shields.io/badge/tests-37%2F37%20passing-brightgreen.svg)](https://github.com/gl1tch0x1/cog-ai)
+[![Tests](https://img.shields.io/badge/tests-41%2F41%20passing-brightgreen.svg)](https://github.com/gl1tch0x1/cog-ai)
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 </div>

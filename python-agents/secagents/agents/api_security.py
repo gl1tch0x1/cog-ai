@@ -9,6 +9,7 @@ from typing import Optional
 import httpx
 from secagents.agents.base import BaseAgent, AgentConfig, AgentOutput, AgentRole
 from secagents.prompts import API_SECURITY_PROMPT
+from secagents.infra.scope import enforce_scope, ScopeViolationError
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,19 @@ class APISecurityAgent(BaseAgent):
         self, endpoints: list[dict], target: str, spec: Optional[dict]
     ) -> list[dict]:
         findings = []
+        
+        # Validate all endpoints against ALLOWED_DOMAINS
+        scoped_endpoints = []
         for ep in endpoints:
+            path = ep.get("path", "")
+            try:
+                enforce_scope(f"{target.rstrip('/')}/{path.lstrip('/')}")
+                scoped_endpoints.append(ep)
+            except ScopeViolationError:
+                self.logger.debug(f"Endpoint {path} filtered by scope policy")
+                continue
+        
+        for ep in scoped_endpoints:
             findings.extend(await self._test_endpoint(ep, target, spec))
         return findings
 
