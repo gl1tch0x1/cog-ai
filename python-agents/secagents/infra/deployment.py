@@ -60,3 +60,18 @@ class DeploymentManager:
         except Exception as e:
             logger.error(f"Rollback failed: {e}")
             return False
+
+    def deploy_worker_node(self, worker_ip: str, redis_url: str) -> bool:
+        """Deploy distributed worker node onto remote cloud egress machine."""
+        try:
+            logger.info(f"Deploying worker node to {worker_ip}...")
+            cmd = [
+                "ssh",
+                f"root@{worker_ip}",
+                f"docker run -d --name secagent-worker -e REDIS_URL={redis_url} ghcr.io/gl1tch0x1/cog-ai:latest secagent --worker",
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            return res.returncode == 0
+        except Exception as e:
+            logger.error(f"Worker node deployment failed: {e}")
+            return False

