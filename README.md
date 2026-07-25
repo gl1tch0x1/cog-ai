@@ -119,8 +119,13 @@ Built for:
 
 ```mermaid
 graph TB
-    subgraph CLI_LAYER["🖥️ CLI Control Plane"]
+    subgraph CLI_LAYER["🖥️ CLI & Interface Control Plane"]
         CLI["secagent CLI (Rich TUI)"]
+        MCP["🔌 MCPServer (JSON-RPC stdio)"]
+        PLAYBOOK["📜 Playbook Engine (YAML Methodologies)"]
+        CAPSULE["📦 Proof Capsule Engine & Replayer"]
+        HITL["🕹️ Teleoperation Controller (Double Ctrl+C)"]
+        BUDGET["💰 BudgetGuard (Token & Cost Accounting)"]
         SCOPE["Scope Gate (Fail-Closed Enforcer)"]
         VAULT["Vault Key Manager (.env Loader)"]
         PREFLIGHT["Preflight Integrity Checker"]
@@ -149,6 +154,11 @@ graph TB
     end
 
     CLI --> SCOPE
+    MCP --> SCOPE
+    PLAYBOOK --> SCOPE
+    CAPSULE --> VALIDATOR
+    HITL --> SWARM_LAYER
+    BUDGET --> SWARM_LAYER
     SCOPE --> PREFLIGHT
     PREFLIGHT --> VAULT
     VAULT --> PLANNER
@@ -163,6 +173,7 @@ graph TB
     RECON --> CPP
     SWARM_LAYER --> REDIS
     SWARM_LAYER --> VALIDATOR
+    VALIDATOR -->|Export Proof Capsule| CAPSULE
     VALIDATOR -->|Crystallize Exploits| AURA
     VALIDATOR --> REPORTER
 ```
