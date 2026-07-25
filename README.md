@@ -13,7 +13,7 @@
 [![C++ Core](https://img.shields.io/badge/core-c%2B%2B20-blue.svg)](https://isocpp.org/)
 [![Rust Core](https://img.shields.io/badge/core-rust-orange.svg)](https://www.rust-lang.org/)
 [![Go Recon](https://img.shields.io/badge/recon-go-cyan.svg)](https://go.dev/)
-[![Tests](https://img.shields.io/badge/tests-41%2F41%20passing-brightgreen.svg)](https://github.com/gl1tch0x1/cog-ai)
+[![Tests](https://img.shields.io/badge/tests-47%2F47%20passing-brightgreen.svg)](https://github.com/gl1tch0x1/cog-ai)
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 </div>
@@ -82,7 +82,11 @@ Built for:
 6. **Headless Browser Inspection**: `BrowserAgent` automated Chrome DOM extraction & dynamic Playwright form parsing with fallback HTTP inspection.
 7. **Strict SSL/TLS Enforcement**: Environment-controlled dynamic SSL verification (`SECAGENT_VERIFY_SSL`) across all agent HTTP clients.
 8. **Hardware-Aware Local Fallback**: Automatically detects GPU/CPU capabilities to provision local Ollama models (`llama3`, `mistral`, `codellama`) when cloud APIs are unavailable.
-9. **Multi-Provider LLM Consensus**: Routes tasks across OpenAI, Anthropic, Gemini, Groq, and DeepSeek with automated fallback chains and agreement thresholding.
+10. **Model Context Protocol (MCP) Server Mode**: Native JSON-RPC stdio server (`secagent mcp`) allowing Claude Code, Cursor, and VS Code Copilot to drive SecAgent with zero API cost.
+11. **Declarative YAML Playbooks**: Define and version-control complex pentesting methodologies with conditional rules and LLM decision gates (`secagent playbook`).
+12. **Portable Proof Capsules & Replay Engine**: Export verified vulnerabilities to `.json` proof capsules and re-prove them on demand via `secagent replay`.
+13. **Human-In-The-Loop (HITL) Teleoperation**: Intercept double `Ctrl+C` during scan execution to drop into an interactive operator REPL (`step`, `inspect`, `inject`, `resume`, `abort`).
+14. **LLM Budget Guard & Cost Safeguard**: Real-time token cost accounting and configurable budget limit enforcement (`SECAGENT_PRICE_LIMIT`).
 
 ---
 
@@ -91,6 +95,11 @@ Built for:
 | Module | Sub-Components | Operational Description |
 |--------|----------------|-------------------------|
 |  **Neural Swarm Orchestration** | `Orchestrator`, `ArmadaSwarm`, `TaskDAG` | Decomposes high-level objectives into directed acyclic execution graphs (DAGs) with retry and circuit breaker logic. |
+|  **MCP Server Mode** | `MCPServer`, JSON-RPC stdio | Exposes SecAgent tools to Claude Code, Cursor, and Copilot via Model Context Protocol (`secagent mcp`). |
+|  **Declarative Playbooks** | `Playbook`, `PlaybookRunner` | Executes YAML-defined scanning methodologies with dependency ordering and conditional execution (`secagent playbook`). |
+|  **Proof Capsules & Replay** | `ProofCapsule`, `ProofCapsuleReplayer` | Exports verified findings to portable `.json` capsules for instant offline replay & CI verification (`secagent replay`). |
+|  **HITL Teleoperation** | `TeleoperationController` | Intercepts double `Ctrl+C` to pause scan and launch interactive REPL shell. |
+|  **LLM Cost Safeguard** | `BudgetGuard` | Real-time token pricing and cost limit enforcement across OpenAI, Anthropic, Gemini, Groq, and OpenRouter. |
 |  **Aura Cognitive Memory** | `AuraMemoryManager`, Target DNA | Target DNA fingerprinting, WAF memory, payload pattern crystallization, automatic confidence reinforcement & decay (`secagent memory`). |
 |  **Active Recon Engine** | `ReconAgent`, `GoRecon`, `httpx` Prober | Active subdomain resolution, TLS/header probing, HTML crawling, link extraction, and GET/POST parameter discovery. |
 |  **Headless Browser Engine** | `BrowserAgent`, Playwright | Chromium DOM tree inspection, dynamic JS error tracking, and automated HTML form input extraction. |
@@ -515,9 +524,19 @@ secagent vault --validate --env .env
 secagent keyhacks ./src --rate-limit 10.0
 ```
 
-#### 4. `secagent preflight` — System Readiness Verification
+#### 5. `secagent mcp` — Model Context Protocol Server
 ```bash
-secagent preflight
+secagent mcp
+```
+
+#### 6. `secagent playbook` — Declarative Methodology Execution
+```bash
+secagent playbook ./playbooks/web-api.yaml --target example.com
+```
+
+#### 7. `secagent replay` — Proof Capsule PoC Replayer
+```bash
+secagent replay ./cog-ai-results/capsules/proof_sqli_123.json
 ```
 
 #### 5. `secagent memory` — Aura Cognitive Memory Control
