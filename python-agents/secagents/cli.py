@@ -155,6 +155,18 @@ def build_parser() -> argparse.ArgumentParser:
     ctf_cmd.add_argument("--category", choices=["web", "pwn", "crypto", "forensics"], default="web", help="CTF challenge category")
     ctf_cmd.add_argument("--input", required=True, help="Target URL, binary, or challenge input")
 
+    # MCP Server Command
+    sub.add_parser("mcp", help="Run Model Context Protocol (MCP) JSON-RPC stdio server")
+
+    # Playbook Command
+    pb_cmd = sub.add_parser("playbook", help="Execute declarative YAML methodology playbook")
+    pb_cmd.add_argument("file", help="Path to YAML playbook file")
+    pb_cmd.add_argument("--target", "-t", required=True, help="Target domain or host")
+
+    # Replay Proof Capsule Command
+    rep_cmd = sub.add_parser("replay", help="Replay proof capsule PoC against target")
+    rep_cmd.add_argument("capsule", help="Path to proof capsule JSON file")
+
     return p
 
 
@@ -484,6 +496,23 @@ def main() -> None:
             agent = CTFWorkflowManager()
             out = asyncio.run(agent.execute({"category": args.category, "input": args.input}))
             console.print(Panel(f"CTF Solver Output:\n{out.result}", title=f"CTF SOLVER — {args.category.upper()}", border_style="green"))
+        elif args.command == "mcp":
+            from secagents.mcp_server import MCPServer
+            server = MCPServer()
+            server.run_stdio()
+        elif args.command == "playbook":
+            from secagents.operational.playbook import Playbook, PlaybookRunner
+            pb = Playbook.from_yaml_file(Path(args.file))
+            runner = PlaybookRunner(pb)
+            success = runner.run(args.target)
+            msg = "[success]✓ Playbook execution complete.[/success]" if success else "[error]❌ Playbook execution incomplete.[/error]"
+            console.print(Panel(msg, title=f"PLAYBOOK — {pb.name.upper()}", border_style="cyan"))
+        elif args.command == "replay":
+            from secagents.operational.proof_capsule import ProofCapsuleReplayer
+            replayer = ProofCapsuleReplayer()
+            ok, msg = replayer.replay_file(Path(args.capsule))
+            border = "green" if ok else "yellow"
+            console.print(Panel(msg, title="PROOF CAPSULE REPLAY VERIFICATION", border_style=border))
     except KeyboardInterrupt:
         console.print("\n[warning]⚠ Mission aborted by operator.[/warning]")
         sys.exit(130)
