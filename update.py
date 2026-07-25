@@ -118,23 +118,29 @@ def main():
         # 3. Delta Analysis
         ui.update_log("Analyzing intelligence delta...")
         local_rev = run_git("git rev-parse HEAD", root).stdout.strip()
-        try:
-            remote_rev = run_git("git rev-parse @{u}", root).stdout.strip()
-        except Exception:
-            ui.update_log("Could not resolve upstream branch.", "error")
+        remote_rev_res = run_git("git rev-parse origin/main", root)
+        remote_rev = remote_rev_res.stdout.strip() if remote_rev_res.returncode == 0 else ""
+        
+        if not remote_rev:
+            remote_rev_res = run_git("git rev-parse @{u}", root)
+            remote_rev = remote_rev_res.stdout.strip() if remote_rev_res.returncode == 0 else ""
+
+        if not remote_rev:
+            ui.update_log("Could not resolve remote tracking branch.", "error")
             time.sleep(2)
             return
-            
+
         ui.layout["main"].update(ui.render_main())
 
         if local_rev == remote_rev:
             ui.update_log(f"Framework is fully synchronized (Rev: {local_rev[:7]})", "success")
             ui.layout["footer"].update(Panel(Text("OPERATIONAL READINESS VERIFIED", justify="center", style="success"), box=ROUNDED, border_style="success"))
             time.sleep(1)
-            # Continue to installer to ensure dependencies
         else:
             ui.update_log("New intelligence detected. Synchronizing...", "warning")
-            pull = run_git("git pull", root)
+            pull = run_git("git pull origin main", root)
+            if pull.returncode != 0:
+                pull = run_git("git pull", root)
             
             if pull.returncode != 0:
                 ui.update_log("Synchronization collapsed. Conflict detected.", "error")
@@ -153,11 +159,11 @@ def main():
                 time.sleep(1)
 
     # Post-Live recovery and handover
-    # Check if we need to force reset
     local_rev = run_git("git rev-parse HEAD", root).stdout.strip()
-    remote_rev = run_git("git rev-parse @{u}", root).stdout.strip()
+    remote_rev_res = run_git("git rev-parse origin/main", root)
+    remote_rev = remote_rev_res.stdout.strip() if remote_rev_res.returncode == 0 else run_git("git rev-parse @{u}", root).stdout.strip()
     
-    if local_rev != remote_rev:
+    if remote_rev and local_rev != remote_rev:
         console.print("\n[bold yellow]󱈸 RECOVERY OPTION:[/bold yellow]")
         console.print("Local changes detected in core files. Favoring framework integrity is recommended.")
         try:

@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Dict, Any
@@ -391,9 +392,13 @@ def main() -> None:
                 )
             console.print(table)
         elif args.command == "update":
-            with console.status("[bold magenta]Checking for framework updates..."):
-                _, msg = check_and_apply_tool_update()
-            console.print(Panel(msg, title="UPDATE STATUS", border_style="magenta"))
+            update_script = Path(__file__).parent.parent.parent / "update.py"
+            if update_script.exists():
+                subprocess.run([sys.executable, str(update_script)], check=False)
+            else:
+                with console.status("[bold magenta]Checking for framework updates..."):
+                    _, msg = check_and_apply_tool_update()
+                console.print(Panel(msg, title="UPDATE STATUS", border_style="magenta"))
         elif args.command == "hardware":
             profile = detect_hardware()
             console.print(
